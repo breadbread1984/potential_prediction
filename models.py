@@ -191,18 +191,18 @@ def Uniformer(**kwargs):
     results = tf.keras.layers.Dropout(rate = drop_rate)(results)
     # block 1
     for i in range(depth[0]):
-        results = SABlock(channel = hidden_channels[0], drop_path_rate = dpr[i], qkv_bias = qkv_bias, num_heads = num_heads, **kwargs)(results)
+        results = CBlock(channel = hidden_channels[0], drop_path_rate = dpr[i], **kwargs)(results)
     results = tf.keras.layers.Conv3D(hidden_channels[1], kernel_size = (3, 3, 3), strides = (3, 3, 3), padding = 'same', groups = groups)(results) # results.shape = (batch, t / 3, h / 3, w / 3, hidden_channels[1])
     results = tf.keras.layers.LayerNormalization()(results)
     # block 2
     for i in range(depth[1]):
-        results = SABlock(channel = hidden_channels[1], drop_path_rate = dpr[i], qkv_bias = qkv_bias, num_heads = num_heads, **kwargs)(results)
+        results = CBlock(channel = hidden_channels[1], drop_path_rate = dpr[i], **kwargs)(results)
     results = tf.keras.layers.Conv3D(hidden_channels[2], kernel_size = (3, 3, 3), strides = (3, 3, 3), padding = 'same', groups = groups)(results) # results.shape = (batch, t / 9, h / 9, w / 9, hidden_channels[2])
     results = tf.keras.layers.LayerNormalization()(results)
     # do attention only when the feature shape is small enough
     # block 3
     for i in range(depth[2]):
-        results = ABlock(channel = hidden_channels[2], drop_path_rate = dpr[i], qkv_bias = qkv_bias, num_heads = num_heads, **kwargs)(results)
+        results = SABlock(channel = hidden_channels[2], drop_path_rate = dpr[i], qkv_bias = qkv_bias, num_heads = num_heads, **kwargs)(results)
     results = tf.keras.layers.Conv3D(hidden_channels[3], kernel_size = (3, 3, 3), strides = (3, 3, 3), padding = 'same', groups = groups)(results) # results.shape = (batch, t / 27, h / 27, w / 27, hidden_channels[3])
     results = tf.keras.layers.LayerNormalization()(results)
     # block 4
