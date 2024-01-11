@@ -197,9 +197,17 @@ def UniformerBase(**kwargs):
     # network
     return Uniformer(hidden_channels = hidden_channels, depth = depth, **kwargs)
 
+def Trainer(model):
+    inputs = tf.keras.Input((81,81,81,4))
+    results = model(inputs)
+    results = tf.keras.layers.Dense(128, activation = tf.keras.activations.gelu)(results)
+    results = tf.keras.layers.Dense(1, activation = tf.keras.activations.linear)(results)
+    return tf.keras.Model(inputs = inputs, outputs = results)
+
 if __name__ == "__main__":
     inputs = np.random.normal(size = (1,81,81,81,4))
-    uniformer = UniformerBase(in_channel = 4, out_channel = 768, groups = 4)
-    uniformer.save('uniformer.keras')
-    outputs = uniformer(inputs)
+    uniformer = UniformerSmall(in_channel = 4, out_channel = 768, groups = 4)
+    trainer = Trainer(uniformer)
+    trainer.save('uniformer.keras')
+    outputs = trainer(inputs)
     print(outputs.shape)
