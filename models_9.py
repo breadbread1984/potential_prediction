@@ -222,7 +222,7 @@ def UniformerBase(**kwargs):
 def Trainer(model):
     inputs = tf.keras.Input((9,9,9,4))
     results = model(inputs)
-    results = tf.keras.layers.Dense(128, activation = tf.keras.activations.gelu)(results)
+    results = tf.keras.layers.Dense(64, activation = tf.keras.activations.gelu)(results)
     results = tf.keras.layers.Dense(1, activation = tf.keras.activations.linear)(results)
     return tf.keras.Model(inputs = inputs, outputs = results)
 
