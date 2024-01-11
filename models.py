@@ -64,6 +64,37 @@ def Attention(**kwargs):
     results = tf.keras.layers.Dropout(rate = drop_rate)(results)
     return tf.keras.Model(inputs = inputs, outputs = results, name = kwargs.get('name', None))
 
+def ABlock(**kwargs):
+    # args
+    channel = kwargs.get('channel', 768)
+    mlp_ratio = kwargs.get('mlp_ratio', 4)
+    drop_rate = kwargs.get('drop_rate', 0.1)
+    num_heads = kwargs.get('num_heads', 8)
+    qkv_bias = kwargs.get('qkv_bias', False)
+    drop_path_rate = kwargs.get('drop_path_rate', 0.)
+    groups = kwargs.get('groups', 1)
+    # network
+    inputs = tf.keras.Input((None, None, None, channel))
+    # positional embedding
+    skip = inputs
+    pos_embed = tf.keras.layers.Conv3D(channel, kernel_size = (3,3,3), padding = 'same', groups = groups)(inputs)
+    results = tf.keras.layers.Add()([skip, pos_embed])
+    # attention
+    skip = results
+    results = tf.keras.layers.LayerNormalization()(results) # results.shape = (batch, T, H, W, channel)
+    shape = tf.keras.layers.Lambda(lambda x: tf.shape(x))(results)
+    results = tf.keras.layers.Lambda(lambda x: tf.reshape(x, (tf.shape(x)[0],
+                                                              tf.shape(x)[1] * tf.shape(x)[2] * tf.shape(x)[3],
+                                                              tf.shape(x)[4])))(results) # results.shape = (batch, T * H * W, channel)
+    results = Attention(**kwargs)(results)
+    if drop_path_rate > 0:
+        results = KCV.layers.DropPath(rate = drop_path_rate)(results)
+    else:
+        results = tf.keras.layers.Identity()(results)
+    results = tf.keras.layers.Lambda(lambda x: tf.reshape(x[0], x[1]), output_shape = (None, None, None, channel))([result, shape]) # results.shape = (batch, T, H, W, channel)
+    results = tf.keras.layers.Add()([skip, results])
+    return tf.keras.Model(inputs = inputs, outputs = results, name = kwargs.get('name', None))
+
 def SABlock(**kwargs):
     # args
     channel = kwargs.get('channel', 768)
