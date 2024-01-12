@@ -11,6 +11,7 @@ FLAGS = flags.FLAGS
 def add_options():
   flags.DEFINE_string('input_dir', default = None, help = 'path to input directory')
   flags.DEFINE_string('output_dir', default = '', help = 'path to output directory')
+  flags.DEFINE_list('eval_dists', default = ['1.7',], help = 'bond distances which are used as evaluation dataset')
 
 class Dataset(object):
   def __init__(self,):
@@ -60,8 +61,9 @@ class Dataset(object):
     return parse_function
 
 def main(unused_argv):
+  eval_dists = [float(d) for d in FLAGS.eval_dists]
   dataset = Dataset()
-  dataset.generate_tfrecords(FLAGS.input_dir, FLAGS.output_dir, eval_dists = FLAGS.eval_dists)
+  dataset.generate_tfrecords(FLAGS.input_dir, FLAGS.output_dir, eval_dists = eval_dists)
 
 if __name__ == "__main__":
   add_options()
