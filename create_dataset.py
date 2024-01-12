@@ -52,11 +52,13 @@ class Dataset(object):
       feature = tf.io.parse_single_example(
         serialized_example,
         features = {
-          'x': tf.io.FixedLenFeature((9,9,9,4), dtype = tf.float32),
-          'y': tf.io.FixedLenFeature((), dtype = tf.float32),
+          'x': tf.io.FixedLenFeature((), dtype = tf.string),
+          'y': tf.io.FixedLenFeature((), dtype = tf.string),
         })
       x = tf.io.parse_tensor(feature['x'], out_type = tf.float32)
+      assert x.shape == (9,9,9,4)
       y = tf.io.parse_tensor(feature['y'], out_type = tf.float32)
+      assert y.shape == ()
       return x, y
     return parse_function
 
