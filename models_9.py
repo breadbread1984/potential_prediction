@@ -4,44 +4,6 @@ import numpy as np
 import tensorflow as tf
 import keras_cv as KCV
 
-def CBlock(**kwargs):
-    # args
-    channel = kwargs.get('channel', 768)
-    drop_path_rate = kwargs.get('drop_path_rate', 0.)
-    mlp_ratio = kwargs.get('mlp_ratio', 4)
-    drop_rate = kwargs.get('drop_rate', 0.1)
-    groups = kwargs.get('groups', 1)
-    # network
-    inputs = tf.keras.Input((None, None, None, channel))
-    # positional embedding
-    skip = inputs
-    pos_embed = tf.keras.layers.Conv3D(channel, kernel_size = (3,3,3), padding = 'same', groups = groups)(inputs)
-    results = tf.keras.layers.Add()([skip, pos_embed])
-    # attention
-    skip = results
-    results = tf.keras.layers.BatchNormalization()(results)
-    results = tf.keras.layers.Conv3D(channel, kernel_size = (1,1,1), padding = 'same', groups = groups)(results)
-    results = tf.keras.layers.Conv3D(channel, kernel_size = (5,5,5), padding = 'same', groups = groups)(results)
-    results = tf.keras.layers.Conv3D(channel, kernel_size = (1,1,1), padding = 'same', groups = groups)(results)
-    if drop_path_rate > 0:
-        results = KCV.layers.DropPath(rate = drop_path_rate)(results)
-    else:
-        results = tf.keras.layers.Identity()(results)
-    results = tf.keras.layers.Add()([skip, results])
-    # mlp
-    skip = results
-    results = tf.keras.layers.BatchNormalization()(results)
-    results = tf.keras.layers.Conv3D(channel * mlp_ratio, kernel_size = (1,1,1), padding = 'same', activation = tf.keras.activations.gelu, groups = groups)(results)
-    results = tf.keras.layers.Dropout(rate = drop_rate)(results)
-    results = tf.keras.layers.Conv3D(channel, kernel_size = (1,1,1), padding = 'same', groups = groups)(results)
-    results = tf.keras.layers.Dropout(rate = drop_rate)(results)
-    if drop_path_rate > 0:
-        results = KCV.layers.DropPath(rate = drop_path_rate)(results)
-    else:
-        results = tf.keras.layers.Identity()(results)
-    results = tf.keras.layers.Add()([skip, results])
-    return tf.keras.Model(inputs = inputs, outputs = results, name = kwargs.get('name', None))
-
 def Attention(**kwargs):
     # args
     channel = kwargs.get('channel', 768)
@@ -93,69 +55,6 @@ def ABlock(**kwargs):
         results = tf.keras.layers.Identity()(results)
     results = tf.keras.layers.Lambda(lambda x: tf.reshape(x[0], x[1]), output_shape = (None, None, None, channel))([results, shape]) # results.shape = (batch, T, H, W, channel)
     results = tf.keras.layers.Add()([skip, results])
-    return tf.keras.Model(inputs = inputs, outputs = results, name = kwargs.get('name', None))
-
-def SABlock(**kwargs):
-    # args
-    channel = kwargs.get('channel', 768)
-    mlp_ratio = kwargs.get('mlp_ratio', 4)
-    drop_rate = kwargs.get('drop_rate', 0.1)
-    num_heads = kwargs.get('num_heads', 8)
-    qkv_bias = kwargs.get('qkv_bias', False)
-    drop_path_rate = kwargs.get('drop_path_rate', 0.)
-    groups = kwargs.get('groups', 1)
-    # network
-    inputs = tf.keras.Input((None, None, None, channel))
-    # positional embedding
-    skip = inputs
-    pos_embed = tf.keras.layers.Conv3D(channel, kernel_size = (3,3,3), padding = 'same', groups = groups)(inputs)
-    results = tf.keras.layers.Add()([skip, pos_embed])
-    # attention between h and w
-    skip = results
-    results = tf.keras.layers.LayerNormalization()(results) # results.shape = (batch, T, H, W, channel)
-    shape1 = tf.keras.layers.Lambda(lambda x: tf.shape(x))(results)
-    results = tf.keras.layers.Lambda(lambda x: tf.reshape(x, (tf.shape(x)[0] * tf.shape(x)[1],
-                                                          tf.shape(x)[2] * tf.shape(x)[3],
-                                                          tf.shape(x)[4])))(results) # results.shape = (batch * T, H * W, channel)
-    results = Attention(**kwargs)(results)
-    if drop_path_rate > 0:
-        results = KCV.layers.DropPath(rate = drop_path_rate)(results)
-    else:
-        results = tf.keras.layers.Identity()(results)
-    results = tf.keras.layers.Lambda(lambda x: tf.reshape(x[0], x[1]), output_shape = (None, None, None, channel))([results, shape1]) # results.shape = (batch, T, H, W, channel)
-    results = tf.keras.layers.Add()([skip, results])
-    # attention between t and h
-    skip = results
-    results = tf.keras.layers.LayerNormalization()(results) # results.shape = (batch, T, H, W, channel)
-    results = tf.keras.layers.Lambda(lambda x: tf.transpose(x, (0,3,1,2,4)))(results) # results.shape = (batch, W, T, H, channel)
-    shape2 = tf.keras.layers.Lambda(lambda x: tf.shape(x))(results)
-    results = tf.keras.layers.Lambda(lambda x: tf.reshape(x, (tf.shape(x)[0] * tf.shape(x)[1],
-                                                          tf.shape(x)[2] * tf.shape(x)[3],
-                                                          tf.shape(x)[4])))(results) # results.shape = (batch * W, T * H, channel)
-    results = Attention(**kwargs)(results)
-    if drop_path_rate > 0:
-        results = KCV.layers.DropPath(rate = drop_path_rate)(results)
-    else:
-        results = tf.keras.layers.Identity()(results)
-    results = tf.keras.layers.Lambda(lambda x: tf.reshape(x[0], x[1]), output_shape = (None, None, None, channel))([results, shape2]) # results.shape = (batch, W, T, H, channel)
-    results = tf.keras.layers.Lambda(lambda x: tf.transpose(x, (0,2,3,1,4)))(results) # results.shape = (batch, T, H, W, channel)
-    results = tf.keras.layers.Add()([skip, results])
-    # attention between w and t
-    skip = results
-    results = tf.keras.layers.LayerNormalization()(results) # results.shape = (batch, T, H, W, channel)
-    results = tf.keras.layers.Lambda(lambda x: tf.transpose(x, (0,2,3,1,4)))(results) # results.shape = (batch, H, W, T, channel)
-    shape3 = tf.keras.layers.Lambda(lambda x: tf.shape(x))(results)
-    results = tf.keras.layers.Lambda(lambda x: tf.reshape(x, (tf.shape(x)[0] * tf.shape(x)[1],
-                                                          tf.shape(x)[2] * tf.shape(x)[3],
-                                                          tf.shape(x)[4])))(results) # results.shape = (batch * H, W * T, channel)
-    results = Attention(**kwargs)(results)
-    if drop_path_rate > 0:
-        results = KCV.layers.DropPath(rate = drop_path_rate)(results)
-    else:
-        results = tf.keras.layers.Identity()(results)
-    results = tf.keras.layers.Lambda(lambda x: tf.reshape(x[0], x[1]), output_shape = (None, None, None, channel))([results, shape3]) # results.shape = (batch, H, W, T, channel)
-    results = tf.keras.layers.Lambda(lambda x: tf.transpose(x, (0,3,1,2,4)))(results) # results.shape = (batch, T, H, W, channel)
-    results = tf.keras.layers.Add()([skip, results])
     # mlp
     skip = results
     results = tf.keras.layers.LayerNormalization()(results)
@@ -202,7 +101,7 @@ def Uniformer(**kwargs):
     results = tf.keras.layers.BatchNormalization()(results) # results.shape = (batch, 1, 1, 1, hidden_channels[1])
     if out_channel is not None:
         results = tf.keras.layers.Dense(out_channel, activation = tf.keras.activations.tanh)(results) # results.shape = (batch, 1, 1, 1, out_channel)
-    results = tf.keras.layers.Lambda(lambda x: tf.reduce_mean(x, axis = (1,2,3)))(results) # results.shape = (batch, out_channel)
+    results = tf.keras.layers.Lambda(lambda x: tf.reduce_mean(x, axis = (1, 2, 3)))(results) # results.shape = (batch, out_channel)
     return tf.keras.Model(inputs = inputs, outputs = results, name = kwargs.get('name', None))
 
 def UniformerSmall(**kwargs):
@@ -222,8 +121,8 @@ def UniformerBase(**kwargs):
 def Trainer(model):
     inputs = tf.keras.Input((9,9,9,4))
     results = model(inputs)
-    results = tf.keras.layers.Dense(64, activation = tf.keras.activations.gelu)(results)
-    results = tf.keras.layers.Dense(1, activation = tf.keras.activations.linear)(results)
+    results = tf.keras.layers.Dense(64, activation = tf.keras.activations.gelu)(results) # results.shape = (batch, 64)
+    results = tf.keras.layers.Lambda(lambda x: tf.math.reduce_sum(x, axis = -1, keepdims = True))(results) # results.shape = (batch, 1)
     return tf.keras.Model(inputs = inputs, outputs = results)
 
 if __name__ == "__main__":
