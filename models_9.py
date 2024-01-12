@@ -123,6 +123,7 @@ def Trainer(model):
     results = model(inputs)
     results = tf.keras.layers.Dense(64, activation = tf.keras.activations.gelu)(results) # results.shape = (batch, 64)
     results = tf.keras.layers.Lambda(lambda x: tf.math.reduce_sum(x, axis = -1, keepdims = True))(results) # results.shape = (batch, 1)
+    # NOTE: the prediction value is exp(potential)
     return tf.keras.Model(inputs = inputs, outputs = results)
 
 if __name__ == "__main__":
