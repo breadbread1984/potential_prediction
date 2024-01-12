@@ -12,7 +12,7 @@ def add_option():
   flags.DEFINE_string('dataset', default = None, help = 'path to directory containing train and test set')
   flags.DEFINE_string('ckpt', default = 'ckpt', help = 'path to directory for checkpoints')
   flags.DEFINE_integer('channels', default = 768, help = 'output channel')
-  flags.DEFINE_integer('groups', default = 4, help = 'group number for conv')
+  flags.DEFINE_integer('groups', default = 1, help = 'group number for conv')
   flags.DEFINE_integer('decay_steps', default = 1000, help = 'decay steps')
   flags.DEFINE_integer('warmup_steps', default = 1000, help = 'warmup steps')
   flags.DEFINE_integer('batch_size', default = 128, help = 'batch size')

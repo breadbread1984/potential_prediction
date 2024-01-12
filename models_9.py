@@ -128,7 +128,7 @@ def Trainer(model):
 
 if __name__ == "__main__":
     inputs = np.random.normal(size = (1,9,9,9,4))
-    uniformer = UniformerSmall(in_channel = 4, out_channel = 768, groups = 4)
+    uniformer = UniformerSmall(in_channel = 4, out_channel = 768, groups = 1)
     trainer = Trainer(uniformer)
     trainer.save('uniformer.keras')
     outputs = trainer(inputs)
