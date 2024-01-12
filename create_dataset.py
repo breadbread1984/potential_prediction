@@ -47,6 +47,7 @@ class Dataset(object):
           target.write(trainsample.SerializeToString())
     trainset.close()
     valset.close()
+  @classmethod
   def get_parse_function(self,):
     def parse_function(serialized_example):
       feature = tf.io.parse_single_example(
