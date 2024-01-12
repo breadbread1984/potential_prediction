@@ -52,12 +52,12 @@ class Dataset(object):
       feature = tf.io.parse_single_example(
         serialized_example,
         features = {
-          'density': tf.io.FixedLenFeature((81,81,81,4), dtype = tf.float32),
-          'potential': tf.io.FixedLenFeature((), dtype = tf.float32),
+          'x': tf.io.FixedLenFeature((9,9,9,4), dtype = tf.float32),
+          'y': tf.io.FixedLenFeature((), dtype = tf.float32),
         })
-      density = feature['density']
-      potential = feature['potential']
-      return density, potential
+      x = tf.io.parse_tensor(feature['x'], out_type = tf.float32)
+      y = tf.io.parse_tensor(feature['y'], out_type = tf.float32)
+      return x, y
     return parse_function
 
 def main(unused_argv):
