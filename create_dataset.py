@@ -68,7 +68,7 @@ class Dataset(object):
       assert x.shape == (9,9,9,4)
       y = tf.io.parse_tensor(feature['y'], out_type = tf.float32)
       assert y.shape == ()
-      return x, y
+      return x, tf.math.exp(y)
     return parse_function
 
 def main(unused_argv):
