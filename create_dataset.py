@@ -3,6 +3,7 @@
 from os import listdir
 from os.path import isdir, join, exists, splitext
 from absl import flags, app
+from multiprocessing import Pool
 import numpy as np
 import tensorflow as tf
 
@@ -28,25 +29,32 @@ class Dataset(object):
       x, y = tf.constant(np.stack([density, grad_x, grad_y, grad_z], axis = -1), dtype = tf.float32), tf.constant(potential, dtype = tf.float32)
       assert x.shape == (9,9,9,4)
       yield x,y
-  def generate_tfrecords(self, input_dir, output_dir, eval_dists = [1.7]):
-    trainset = tf.io.TFRecordWriter(join(output_dir, 'trainset.tfrecord'))
-    valset = tf.io.TFRecordWriter(join(output_dir, 'valset.tfrecord'))
+  def generate_tfrecords(self, input_dir, output_dir, eval_dists = [1.7], pool_size = 16):
+    pool = Pool(pool_size)
+    train_count, val_count = 0, 0
+    def write_tfrecord(npy_path, tfrecord):
+      writer = tf.io.TFRecordWriter(tfrecord)
+      for x,y in self.sample_generator(npy_path):
+        trainsample = tf.train.Example(features = tf.train.Features(
+          feature = {
+            'x': tf.train.Feature(bytes_list = tf.train.BytesList(value = [tf.io.serialize_tensor(x).numpy()])),
+            'y': tf.train.Feature(bytes_list = tf.train.BytesList(value = [tf.io.serialize_tensor(x).numpy()])),
+          }))
+        writer.write(trainsample.SerializeToString())
+      writer.close()
     for molecule in listdir(input_dir):
       if not isdir(molecule): continue
       for bond in listdir(join(input_dir, molecule)):
         stem, ext = splitext(bond)
         if ext != '.npy': continue
         distance = float(stem.replace('dm_', ''))
-        target = trainset if distance not in eval_dist else valset
-        for x,y in self.sample_generator(join(input_dir, molecule, bond)):
-          trainsample = tf.train.Example(features = tf.train.Features(
-            feature = {
-              'x': tf.train.Feature(bytes_list = tf.train.BytesList(value = [tf.io.serialize_tensor(x).numpy()])),
-              'y': tf.train.Feature(bytes_list = tf.train.BytesList(value = [tf.io.serialize_tensor(x).numpy()])),
-            }))
-          target.write(trainsample.SerializeToString())
-    trainset.close()
-    valset.close()
+        # decide whether to write to trainset or valset
+        is_train_sample = True if distance not in eval_dist else False
+        tfrecord_path = ('trainset_%d.tfrecord' if is_train_sample else 'valset_%d.tfrecord') % (train_count if is_train_sample else val_count)
+        train_count = (train_count + 1) if is_train_sample else train_count
+        val_count = (val_count + 1) if not is_train_sample else val_count
+        pool.apply_async(write_tfrecord, (join(input_dir, molecule, bond), tfrecord_path))
+    pool.join()
   @classmethod
   def get_parse_function(self,):
     def parse_function(serialized_example):
