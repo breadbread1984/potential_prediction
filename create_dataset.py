@@ -33,7 +33,7 @@ class Dataset(object):
       yield x,y
   @staticmethod
   def write_tfrecord(npy_path, tfrecord):
-      print(npy_path, tfrecord)
+      print("%s => %s" % (npy_path, tfrecord))
       writer = tf.io.TFRecordWriter(tfrecord)
       for x,y in Dataset.sample_generator(npy_path):
         trainsample = tf.train.Example(features = tf.train.Features(
