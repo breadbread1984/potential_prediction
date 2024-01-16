@@ -74,8 +74,8 @@ class Dataset(object):
         #write_tfrecord(join(input_dir, molecule, bond), tfrecord_path)
         handlers.append(pool.apply_async(Dataset.write_tfrecord, (join(input_dir, molecule, bond), tfrecord_path)))
     [handler.wait() for handler in handlers]
-  @classmethod
-  def get_parse_function(self,):
+  @staticmethod
+  def get_parse_function():
     def parse_function(serialized_example):
       feature = tf.io.parse_single_example(
         serialized_example,
