@@ -46,17 +46,6 @@ class Dataset(object):
   def generate_tfrecords(self, input_dir, output_dir, eval_dists = [1700], pool_size = 16):
     pool = Pool(pool_size)
     train_count, val_count = 0, 0
-    def write_tfrecord(npy_path, tfrecord):
-      print(npy_path, tfrecord)
-      writer = tf.io.TFRecordWriter(tfrecord)
-      for x,y in self.sample_generator(npy_path):
-        trainsample = tf.train.Example(features = tf.train.Features(
-          feature = {
-            'x': tf.train.Feature(bytes_list = tf.train.BytesList(value = [tf.io.serialize_tensor(x).numpy()])),
-            'y': tf.train.Feature(bytes_list = tf.train.BytesList(value = [tf.io.serialize_tensor(y).numpy()])),
-          }))
-        writer.write(trainsample.SerializeToString())
-      writer.close()
     if exists(FLAGS.output_dir): rmtree(FLAGS.output_dir)
     mkdir(FLAGS.output_dir)
     handlers = list()
