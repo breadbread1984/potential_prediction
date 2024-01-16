@@ -44,7 +44,7 @@ class Dataset(object):
       writer.close()
     handlers = list()
     for molecule in listdir(input_dir):
-      if not isdir(molecule): continue
+      if not isdir(join(input_dir, molecule)): continue
       for bond in listdir(join(input_dir, molecule)):
         stem, ext = splitext(bond)
         if ext != '.npy': continue
