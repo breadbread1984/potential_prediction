@@ -18,7 +18,8 @@ def add_options():
 class Dataset(object):
   def __init__(self,):
     pass
-  def sample_generator(self, npy_path):
+  @staticmethod
+  def sample_generator(npy_path):
     samples = np.load(npy_path)
     for sample in samples:
       coordinate = sample[:3]
@@ -30,10 +31,23 @@ class Dataset(object):
       x, y = tf.constant(np.stack([density, grad_x, grad_y, grad_z], axis = -1), dtype = tf.float32), tf.constant(potential, dtype = tf.float32)
       assert x.shape == (9,9,9,4)
       yield x,y
+  @staticmethod
+  def write_tfrecord(npy_path, tfrecord):
+      print(npy_path, tfrecord)
+      writer = tf.io.TFRecordWriter(tfrecord)
+      for x,y in Dataset.sample_generator(npy_path):
+        trainsample = tf.train.Example(features = tf.train.Features(
+          feature = {
+            'x': tf.train.Feature(bytes_list = tf.train.BytesList(value = [tf.io.serialize_tensor(x).numpy()])),
+            'y': tf.train.Feature(bytes_list = tf.train.BytesList(value = [tf.io.serialize_tensor(x).numpy()])),
+          }))
+        writer.write(trainsample.SerializeToString())
+      writer.close()
   def generate_tfrecords(self, input_dir, output_dir, eval_dists = [1700], pool_size = 16):
     pool = Pool(pool_size)
     train_count, val_count = 0, 0
     def write_tfrecord(npy_path, tfrecord):
+      print(npy_path, tfrecord)
       writer = tf.io.TFRecordWriter(tfrecord)
       for x,y in self.sample_generator(npy_path):
         trainsample = tf.train.Example(features = tf.train.Features(
@@ -57,7 +71,8 @@ class Dataset(object):
         tfrecord_path = join(FLAGS.output_dir, ('trainset_%d.tfrecord' if is_train_sample else 'valset_%d.tfrecord') % (train_count if is_train_sample else val_count))
         train_count = (train_count + 1) if is_train_sample else train_count
         val_count = (val_count + 1) if not is_train_sample else val_count
-        handlers.append(pool.apply_async(write_tfrecord, (join(input_dir, molecule, bond), tfrecord_path)))
+        #write_tfrecord(join(input_dir, molecule, bond), tfrecord_path)
+        handlers.append(pool.apply_async(Dataset.write_tfrecord, (join(input_dir, molecule, bond), tfrecord_path)))
     [handler.wait() for handler in handlers]
   @classmethod
   def get_parse_function(self,):
