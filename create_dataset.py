@@ -47,7 +47,7 @@ class Dataset(object):
       for bond in listdir(join(input_dir, molecule)):
         stem, ext = splitext(bond)
         if ext != '.npy': continue
-        distance = float(stem.replace('dm_', ''))
+        distance = int(stem.replace('data_', ''))
         # decide whether to write to trainset or valset
         is_train_sample = True if distance not in eval_dist else False
         tfrecord_path = ('trainset_%d.tfrecord' if is_train_sample else 'valset_%d.tfrecord') % (train_count if is_train_sample else val_count)
@@ -72,7 +72,7 @@ class Dataset(object):
     return parse_function
 
 def main(unused_argv):
-  eval_dists = [float(d) for d in FLAGS.eval_dists]
+  eval_dists = [int(float(d) * 1000) for d in FLAGS.eval_dists]
   dataset = Dataset()
   dataset.generate_tfrecords(FLAGS.input_dir, FLAGS.output_dir, eval_dists = eval_dists)
 
