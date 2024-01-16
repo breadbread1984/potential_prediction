@@ -50,7 +50,7 @@ class Dataset(object):
         if ext != '.npy': continue
         distance = int(stem.replace('data_', ''))
         # decide whether to write to trainset or valset
-        is_train_sample = True if distance not in eval_dist else False
+        is_train_sample = True if distance not in eval_dists else False
         tfrecord_path = ('trainset_%d.tfrecord' if is_train_sample else 'valset_%d.tfrecord') % (train_count if is_train_sample else val_count)
         train_count = (train_count + 1) if is_train_sample else train_count
         val_count = (val_count + 1) if not is_train_sample else val_count
