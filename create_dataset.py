@@ -39,7 +39,7 @@ class Dataset(object):
         trainsample = tf.train.Example(features = tf.train.Features(
           feature = {
             'x': tf.train.Feature(bytes_list = tf.train.BytesList(value = [tf.io.serialize_tensor(x).numpy()])),
-            'y': tf.train.Feature(bytes_list = tf.train.BytesList(value = [tf.io.serialize_tensor(x).numpy()])),
+            'y': tf.train.Feature(bytes_list = tf.train.BytesList(value = [tf.io.serialize_tensor(y).numpy()])),
           }))
         writer.write(trainsample.SerializeToString())
       writer.close()
@@ -53,7 +53,7 @@ class Dataset(object):
         trainsample = tf.train.Example(features = tf.train.Features(
           feature = {
             'x': tf.train.Feature(bytes_list = tf.train.BytesList(value = [tf.io.serialize_tensor(x).numpy()])),
-            'y': tf.train.Feature(bytes_list = tf.train.BytesList(value = [tf.io.serialize_tensor(x).numpy()])),
+            'y': tf.train.Feature(bytes_list = tf.train.BytesList(value = [tf.io.serialize_tensor(y).numpy()])),
           }))
         writer.write(trainsample.SerializeToString())
       writer.close()
