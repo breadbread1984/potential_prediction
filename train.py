@@ -8,7 +8,7 @@ from create_dataset import Dataset
 
 FLAGS = flags.FLAGS
 
-def add_option():
+def add_options():
   flags.DEFINE_string('dataset', default = None, help = 'path to directory containing train and test set')
   flags.DEFINE_string('ckpt', default = 'ckpt', help = 'path to directory for checkpoints')
   flags.DEFINE_integer('channels', default = 768, help = 'output channel')
