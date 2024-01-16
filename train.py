@@ -23,8 +23,8 @@ def main(unused_argv):
   uniformer = UniformerSmall(in_channel = 4, out_channel = FLAGS.channels, groups = FLAGS.groups)
   trainer = Trainer(uniformer)
   if exists(FLAGS.ckpt): trainer.load_weight(join(FLAGS.ckpt, 'variables', 'variables'))
-  optimizer = tf.keras.optimizers.Adam(tf.keras.optimizers.schedules.CosineDecay(0, decay_steps = FLAGS.decay_steps, warmup_steps = FLAGS.warmup_steps, warmup_target = 0.1))
-  trainer.compile(optimizer = optimizer, loss = [tf.keras.losses.MeanAbsoluteError], metrics = [tf.keras.metrics.MeanAbsoluteError])
+  optimizer = tf.keras.optimizers.Adam(tf.keras.optimizers.schedules.CosineDecay(0., decay_steps = FLAGS.decay_steps, warmup_steps = FLAGS.warmup_steps, warmup_target = 0.1))
+  trainer.compile(optimizer = optimizer, loss = [tf.keras.losses.MeanAbsoluteError()], metrics = [tf.keras.metrics.MeanAbsoluteError()])
   trainset = tf.data.TFRecordDataset(join(FLAGS.dataset, 'trainset.tfrecord')).map(Dataset.get_parse_function()).prefetch(FLAGS.batch_size).shuffle(FLAGS.batch_size).batch(FLAGS.batch_size)
   valset = tf.data.TFRecordDataset(join(FLAGS.dataset, 'valset.tfrecord')).map(Dataset.get_parse_function()).prefetch(FLAGS.batch_size).shuffle(FLAGS.batch_size).batch(FLAGS.batch_size)
   callbacks = [
