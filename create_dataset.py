@@ -84,8 +84,10 @@ class Dataset(object):
           'y': tf.io.FixedLenFeature((), dtype = tf.string),
         })
       x = tf.io.parse_tensor(feature['x'], out_type = tf.float32)
+      x = tf.reshape(x, (9,9,9,4))
       assert x.shape == (9,9,9,4)
       y = tf.io.parse_tensor(feature['y'], out_type = tf.float32)
+      y = tf.reshape(y, ())
       assert y.shape == ()
       return x, tf.math.exp(y)
     return parse_function
