@@ -2,6 +2,7 @@
 
 from os import listdir
 from os.path import isdir, join, exists, splitext
+from shutil import rmtree
 from absl import flags, app
 from multiprocessing import Pool
 import numpy as np
@@ -42,6 +43,8 @@ class Dataset(object):
           }))
         writer.write(trainsample.SerializeToString())
       writer.close()
+    if exists(FLAGS.output_dir): rmtree(FLAGS.output_dir)
+    mkdir(FLAGS.output_dir)
     handlers = list()
     for molecule in listdir(input_dir):
       if not isdir(join(input_dir, molecule)): continue
@@ -51,7 +54,7 @@ class Dataset(object):
         distance = int(stem.replace('data_', ''))
         # decide whether to write to trainset or valset
         is_train_sample = True if distance not in eval_dists else False
-        tfrecord_path = ('trainset_%d.tfrecord' if is_train_sample else 'valset_%d.tfrecord') % (train_count if is_train_sample else val_count)
+        tfrecord_path = join(FLAGS.output_dir, ('trainset_%d.tfrecord' if is_train_sample else 'valset_%d.tfrecord') % (train_count if is_train_sample else val_count))
         train_count = (train_count + 1) if is_train_sample else train_count
         val_count = (val_count + 1) if not is_train_sample else val_count
         handlers.append(pool.apply_async(write_tfrecord, (join(input_dir, molecule, bond), tfrecord_path)))
