@@ -1,6 +1,7 @@
 #!/usr/bin/python3
 
-from os.path import exists, join
+from os import listdir
+from os.path import exists, join, splitext
 from absl import app, flags
 import tensorflow as tf
 from models_9 import Trainer, UniformerSmall
@@ -19,14 +20,24 @@ def add_option():
   flags.DEFINE_integer('save_freq', default = 1000, help = 'checkpoint save frequency')
   flags.DEFINE_integer('epochs', default = 600, help = 'epochs to train')
 
+def search_datasets(dataset_path):
+  train_list, val_list = list(), list()
+  for f in listdir(dataset_path):
+    stem, ext = splitext(f)
+    if ext is not '.tfrecord': continue
+    if stem.startswith('trainset'): train_list.append(join(dataset_path, f))
+    if stem.startswith('valset'): val_list.append(join(dataset_path, f))
+  return train_list, val_list
+
 def main(unused_argv):
   uniformer = UniformerSmall(in_channel = 4, out_channel = FLAGS.channels, groups = FLAGS.groups)
   trainer = Trainer(uniformer)
   if exists(FLAGS.ckpt): trainer.load_weight(join(FLAGS.ckpt, 'variables', 'variables'))
   optimizer = tf.keras.optimizers.Adam(tf.keras.optimizers.schedules.CosineDecay(0, decay_steps = FLAGS.decay_steps, warmup_steps = FLAGS.warmup_steps, warmup_target = 0.1))
   trainer.compile(optimizer = optimizer, loss = [tf.keras.losses.MeanAbsoluteError], metrics = [tf.keras.metrics.MeanAbsoluteError])
-  trainset = tf.data.TFRecordDataset(join(FLAGS.dataset, 'trainset.tfrecord')).map(Dataset.get_parse_function()).prefetch(FLAGS.batch_size).shuffle(FLAGS.batch_size).batch(FLAGS.batch_size)
-  valset = tf.data.TFRecordDataset(join(FLAGS.dataset, 'valset.tfrecord')).map(Dataset.get_parse_function()).prefetch(FLAGS.batch_size).shuffle(FLAGS.batch_size).batch(FLAGS.batch_size)
+  train_list, val_list = search_datasets(FLAGS.dataset)
+  trainset = tf.data.TFRecordDataset(train_list).map(Dataset.get_parse_function()).prefetch(FLAGS.batch_size).shuffle(FLAGS.batch_size).batch(FLAGS.batch_size)
+  valset = tf.data.TFRecordDataset(val_list).map(Dataset.get_parse_function()).prefetch(FLAGS.batch_size).shuffle(FLAGS.batch_size).batch(FLAGS.batch_size)
   callbacks = [
     tf.keras.callbacks.TensorBoard(log_dir = FLAGS.ckpt),
     tf.keras.callbacks.ModelCheckpoint(filepath = join(FLAGS.ckpt, 'ckpt'), save_freq = FLAGS.save_freq),
