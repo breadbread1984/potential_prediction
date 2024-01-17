@@ -58,7 +58,7 @@ def main(unused_argv):
       plt.cla()
       plt.plot(selected[:,0], gt, label = 'ground truth')
       plt.plot(selected[:,0], pred, label = 'prediction')
-      plt.savefig('%s.png' % stem)
+      plt.savefig('%s_%d.png' % (molecule, distance))
 
 if __name__ == "__main__":
   add_options()
