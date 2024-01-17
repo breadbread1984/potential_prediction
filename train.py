@@ -17,8 +17,8 @@ def add_options():
   flags.DEFINE_integer('batch_size', default = 128, help = 'batch size')
   flags.DEFINE_integer('save_freq', default = 1000, help = 'checkpoint save frequency')
   flags.DEFINE_integer('epochs', default = 600, help = 'epochs to train')
-  flags.DEFINE_float('lr', default = 0.01, help = 'learning rate')
-  flags.DEFINE_integer('decay_steps', default = 20000, help = 'decay steps')
+  flags.DEFINE_float('lr', default = 0.001, help = 'learning rate')
+  flags.DEFINE_integer('decay_steps', default = 200000, help = 'decay steps')
   flags.DEFINE_boolean('dist', default = False, help = 'whether to use data parallelism')
 
 def set_configs():
