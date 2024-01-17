@@ -19,6 +19,10 @@ def add_options():
   flags.DEFINE_integer('epochs', default = 600, help = 'epochs to train')
   flags.DEFINE_float('lr', default = 0.01, help = 'learning rate')
 
+def set_configs():
+  [tf.config.experimental.set_memory_growth(gpu, True) for gpu in tf.config.experimental.list_physical_devices('GPU')]
+  tf.config.optimizer.set_jit(False)
+
 def search_datasets(dataset_path):
   train_list, val_list = list(), list()
   for f in listdir(dataset_path):
@@ -29,11 +33,11 @@ def search_datasets(dataset_path):
   return train_list, val_list
 
 def main(unused_argv):
-  [tf.config.experimental.set_memory_growth(gpu, True) for gpu in tf.config.experimental.list_physical_devices('GPU')]
+  set_configs()
   uniformer = UniformerSmall(in_channel = 4, out_channel = FLAGS.channels, groups = FLAGS.groups)
   trainer = Trainer(uniformer)
   if exists(FLAGS.ckpt): trainer.load_weights(join(FLAGS.ckpt, 'variables', 'variables'))
-  optimizer = tf.keras.optimizers.Adam(tf.keras.optimizers.schedules.CosineDecayRestarts(FLAGS.lr, first_decay_steps = 10000))
+  optimizer = tf.keras.optimizers.Adam(policy = tf.keras.optimizers.schedules.CosineDecayRestarts(FLAGS.lr, first_decay_steps = 10000))
   trainer.compile(optimizer = optimizer, loss = [tf.keras.losses.MeanAbsoluteError()], metrics = [tf.keras.metrics.MeanAbsoluteError()])
   train_list, val_list = search_datasets(FLAGS.dataset)
   trainset = tf.data.TFRecordDataset(train_list).map(Dataset.get_parse_function()).prefetch(FLAGS.batch_size).shuffle(FLAGS.batch_size).batch(FLAGS.batch_size)
