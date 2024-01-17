@@ -40,6 +40,8 @@ def main(unused_argv):
   optimizer = tf.keras.optimizers.Adam(policy = tf.keras.optimizers.schedules.CosineDecayRestarts(FLAGS.lr, first_decay_steps = 10000))
   trainer.compile(optimizer = optimizer, loss = [tf.keras.losses.MeanAbsoluteError()], metrics = [tf.keras.metrics.MeanAbsoluteError()])
   train_list, val_list = search_datasets(FLAGS.dataset)
+  if len(train_list) == 0 or len(val_list) == 0:
+    raise Exception('no tfrecord files found!')
   trainset = tf.data.TFRecordDataset(train_list).map(Dataset.get_parse_function()).prefetch(FLAGS.batch_size).shuffle(FLAGS.batch_size).batch(FLAGS.batch_size)
   valset = tf.data.TFRecordDataset(val_list).map(Dataset.get_parse_function()).prefetch(FLAGS.batch_size).shuffle(FLAGS.batch_size).batch(FLAGS.batch_size)
   callbacks = [
