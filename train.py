@@ -55,7 +55,6 @@ def main(unused_argv):
   if len(train_list) == 0 or len(val_list) == 0:
     raise Exception('no tfrecord files found!')
   batch_size = FLAGS.batch_size if not FLAGS.dist else FLAGS.batch_size * strategy.num_replicas_in_sync
-  print('data parallelism between %d workers, batch size %d' % (strategy.num_replicas_in_sync, batch_size))
   trainset = tf.data.TFRecordDataset(train_list).map(Dataset.get_parse_function()).prefetch(batch_size).shuffle(batch_size).batch(batch_size)
   valset = tf.data.TFRecordDataset(val_list).map(Dataset.get_parse_function()).prefetch(batch_size).shuffle(batch_size).batch(batch_size)
   callbacks = [
