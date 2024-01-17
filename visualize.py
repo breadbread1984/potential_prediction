@@ -35,6 +35,8 @@ def main(unused_argv):
       if ext != '.npy': continue
       distance = int(stem.replace('data_',''))
       is_eval_sample = True if distance in eval_dists else False
+      if not is_eval_sample: continue
+      print('plotting %s' % join(FLAGS.input_dir, molecule, bond))
       # verify convergence
       npy_path = join(FLAGS.input_dir, molecule, bond)
       samples = np.load(npy_path)
