@@ -5,7 +5,7 @@ from os import listdir
 from os.path import isdir, join, exists, splitext
 import numpy as np
 import tensorflow as tf
-from model_9 import Trainer, UniformerSmall
+from models_9 import Trainer, UniformerSmall
 import matplotlib.pyplot as plt
 
 FLAGS = flags.FLAGS
@@ -17,9 +17,13 @@ def add_options():
   flags.DEFINE_integer('channels', default = 768, help = 'output channels')
   flags.DEFINE_integer('groups', default = 1, help = 'group number for conv')
 
+def set_configs():
+  [tf.config.experimental.set_memory_growth(gpu, True) for gpu in tf.config.experimental.list_physical_devices('GPU')]
+
 def main(unused_argv):
   if not exists(FLAGS.ckpt):
     raise Exception('checkpoint not found!')
+  set_configs()
   uniformer = UniformerSmall(in_channel = 4, out_channel = FLAGS.channels, groups = FLAGS.groups)
   trainer = Trainer(uniformer)
   trainer.load_weights(join(FLAGS.ckpt, 'ckpt', 'variables', 'variables'))
@@ -52,7 +56,7 @@ def main(unused_argv):
       plt.cla()
       plt.plot(selected[:,0], gt)
       plt.plot(selected[:,0], pred)
-      plt.savefig('stem.png')
+      plt.savefig('%s.png' % stem)
 
 if __name__ == "__main__":
   add_options()
