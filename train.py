@@ -23,7 +23,7 @@ def search_datasets(dataset_path):
   train_list, val_list = list(), list()
   for f in listdir(dataset_path):
     stem, ext = splitext(f)
-    if ext is not '.tfrecord': continue
+    if ext != '.tfrecord': continue
     if stem.startswith('trainset'): train_list.append(join(dataset_path, f))
     if stem.startswith('valset'): val_list.append(join(dataset_path, f))
   return train_list, val_list
