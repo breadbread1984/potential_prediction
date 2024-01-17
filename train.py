@@ -37,7 +37,7 @@ def main(unused_argv):
   uniformer = UniformerSmall(in_channel = 4, out_channel = FLAGS.channels, groups = FLAGS.groups)
   trainer = Trainer(uniformer)
   if exists(FLAGS.ckpt): trainer.load_weights(join(FLAGS.ckpt, 'variables', 'variables'))
-  optimizer = tf.keras.optimizers.Adam(policy = tf.keras.optimizers.schedules.CosineDecayRestarts(FLAGS.lr, first_decay_steps = 10000))
+  optimizer = tf.keras.optimizers.Adam(tf.keras.optimizers.schedules.CosineDecayRestarts(FLAGS.lr, first_decay_steps = 10000))
   trainer.compile(optimizer = optimizer, loss = [tf.keras.losses.MeanAbsoluteError()], metrics = [tf.keras.metrics.MeanAbsoluteError()])
   train_list, val_list = search_datasets(FLAGS.dataset)
   if len(train_list) == 0 or len(val_list) == 0:
