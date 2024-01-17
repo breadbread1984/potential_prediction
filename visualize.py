@@ -56,8 +56,8 @@ def main(unused_argv):
         pred.append(np.log(trainer(inputs).numpy()[0]))
         gt.append(sample[3])
       plt.cla()
-      plt.plot(selected[:,0], gt)
-      plt.plot(selected[:,0], pred)
+      plt.plot(selected[:,0], gt, label = 'ground truth')
+      plt.plot(selected[:,0], pred, label = 'prediction')
       plt.savefig('%s.png' % stem)
 
 if __name__ == "__main__":
