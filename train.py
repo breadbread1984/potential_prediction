@@ -14,10 +14,11 @@ def add_options():
   flags.DEFINE_string('ckpt', default = 'ckpt', help = 'path to directory for checkpoints')
   flags.DEFINE_integer('channels', default = 768, help = 'output channel')
   flags.DEFINE_integer('groups', default = 1, help = 'group number for conv')
-  flags.DEFINE_integer('batch_size', default = 64, help = 'batch size')
+  flags.DEFINE_integer('batch_size', default = 128, help = 'batch size')
   flags.DEFINE_integer('save_freq', default = 1000, help = 'checkpoint save frequency')
   flags.DEFINE_integer('epochs', default = 600, help = 'epochs to train')
   flags.DEFINE_float('lr', default = 0.01, help = 'learning rate')
+  flags.DEFINE_integer('decay_steps', default = 20000, help = 'decay steps')
   flags.DEFINE_boolean('dist', default = False, help = 'whether to use data parallelism')
 
 def set_configs():
@@ -39,13 +40,13 @@ def main(unused_argv):
     with strategy.scope():
       uniformer = UniformerSmall(in_channel = 4, out_channel = FLAGS.channels, groups = FLAGS.groups)
       trainer = Trainer(uniformer)
-      optimizer = tf.keras.optimizers.Adam(tf.keras.optimizers.schedules.CosineDecayRestarts(FLAGS.lr, first_decay_steps = 10000))
+      optimizer = tf.keras.optimizers.Adam(tf.keras.optimizers.schedules.CosineDecayRestarts(FLAGS.lr, first_decay_steps = FLAGS.decay_steps))
       loss = [tf.keras.losses.MeanAbsoluteError()]
       metrics = [tf.keras.metrics.MeanAbsoluteError()]
   else:
     uniformer = UniformerSmall(in_channel = 4, out_channel = FLAGS.channels, groups = FLAGS.groups)
     trainer = Trainer(uniformer)
-    optimizer = tf.keras.optimizers.Adam(tf.keras.optimizers.schedules.CosineDecayRestarts(FLAGS.lr, first_decay_steps = 10000))
+    optimizer = tf.keras.optimizers.Adam(tf.keras.optimizers.schedules.CosineDecayRestarts(FLAGS.lr, first_decay_steps = FLAGS.decay_steps))
     loss = [tf.keras.losses.MeanAbsoluteError()]
     metrics = [tf.keras.metrics.MeanAbsoluteError()]
   if exists(FLAGS.ckpt): trainer.load_weights(join(FLAGS.ckpt, 'ckpt', 'variables', 'variables'))
