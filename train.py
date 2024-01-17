@@ -18,10 +18,10 @@ def add_options():
   flags.DEFINE_integer('save_freq', default = 1000, help = 'checkpoint save frequency')
   flags.DEFINE_integer('epochs', default = 600, help = 'epochs to train')
   flags.DEFINE_float('lr', default = 0.01, help = 'learning rate')
+  flags.DEFINE_boolean('dist', default = False, help = 'whether to use data parallelism')
 
 def set_configs():
   [tf.config.experimental.set_memory_growth(gpu, True) for gpu in tf.config.experimental.list_physical_devices('GPU')]
-  tf.config.optimizer.set_jit(False)
 
 def search_datasets(dataset_path):
   train_list, val_list = list(), list()
@@ -34,17 +34,28 @@ def search_datasets(dataset_path):
 
 def main(unused_argv):
   set_configs()
-  uniformer = UniformerSmall(in_channel = 4, out_channel = FLAGS.channels, groups = FLAGS.groups)
-  trainer = Trainer(uniformer)
+  if FLAGS.dist:
+    strategy = tf.distribute.MirroredStrategy()
+    with strategy.scope():
+      uniformer = UniformerSmall(in_channel = 4, out_channel = FLAGS.channels, groups = FLAGS.groups)
+      trainer = Trainer(uniformer)
+      optimizer = tf.keras.optimizers.Adam(tf.keras.optimizers.schedules.CosineDecayRestarts(FLAGS.lr, first_decay_steps = 10000))
+      loss = [tf.keras.losses.MeanAbsoluteError()]
+      metrics = [tf.keras.metrics.MeanAbsoluteError()]
+  else:
+    uniformer = UniformerSmall(in_channel = 4, out_channel = FLAGS.channels, groups = FLAGS.groups)
+    trainer = Trainer(uniformer)
+    optimizer = tf.keras.optimizers.Adam(tf.keras.optimizers.schedules.CosineDecayRestarts(FLAGS.lr, first_decay_steps = 10000))
+    loss = [tf.keras.losses.MeanAbsoluteError()]
+    metrics = [tf.keras.metrics.MeanAbsoluteError()]
   if exists(FLAGS.ckpt): trainer.load_weights(join(FLAGS.ckpt, 'ckpt', 'variables', 'variables'))
-  #optimizer = tf.keras.optimizers.Adam(tf.keras.optimizers.schedules.CosineDecayRestarts(FLAGS.lr, first_decay_steps = 10000))
-  optimizer = tf.keras.optimizers.Adam(FLAGS.lr)
-  trainer.compile(optimizer = optimizer, loss = [tf.keras.losses.MeanAbsoluteError()], metrics = [tf.keras.metrics.MeanAbsoluteError()], run_eagerly = True)
+  trainer.compile(optimizer = optimizer, loss = loss, metrics = metrics)
   train_list, val_list = search_datasets(FLAGS.dataset)
   if len(train_list) == 0 or len(val_list) == 0:
     raise Exception('no tfrecord files found!')
-  trainset = tf.data.TFRecordDataset(train_list).map(Dataset.get_parse_function()).prefetch(FLAGS.batch_size).shuffle(FLAGS.batch_size).batch(FLAGS.batch_size)
-  valset = tf.data.TFRecordDataset(val_list).map(Dataset.get_parse_function()).prefetch(FLAGS.batch_size).shuffle(FLAGS.batch_size).batch(FLAGS.batch_size)
+  batch_size = FLAGS.batch_size if not FLAGS.dist else FLAGS.batch_size * strategy.num_replicas_in_sync
+  trainset = tf.data.TFRecordDataset(train_list).map(Dataset.get_parse_function()).prefetch(FLAGS.batch_size).shuffle(FLAGS.batch_size).batch(batch_size)
+  valset = tf.data.TFRecordDataset(val_list).map(Dataset.get_parse_function()).prefetch(FLAGS.batch_size).shuffle(FLAGS.batch_size).batch(batch_size)
   callbacks = [
     tf.keras.callbacks.TensorBoard(log_dir = FLAGS.ckpt),
     tf.keras.callbacks.ModelCheckpoint(filepath = join(FLAGS.ckpt, 'ckpt'), save_freq = FLAGS.save_freq),
