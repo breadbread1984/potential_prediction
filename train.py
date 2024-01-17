@@ -9,16 +9,15 @@ from create_dataset import Dataset
 
 FLAGS = flags.FLAGS
 
-def add_option():
+def add_options():
   flags.DEFINE_string('dataset', default = None, help = 'path to directory containing train and test set')
   flags.DEFINE_string('ckpt', default = 'ckpt', help = 'path to directory for checkpoints')
   flags.DEFINE_integer('channels', default = 768, help = 'output channel')
   flags.DEFINE_integer('groups', default = 1, help = 'group number for conv')
-  flags.DEFINE_integer('decay_steps', default = 1000, help = 'decay steps')
-  flags.DEFINE_integer('warmup_steps', default = 1000, help = 'warmup steps')
   flags.DEFINE_integer('batch_size', default = 128, help = 'batch size')
   flags.DEFINE_integer('save_freq', default = 1000, help = 'checkpoint save frequency')
   flags.DEFINE_integer('epochs', default = 600, help = 'epochs to train')
+  flags.DEFINE_float('lr', default = 0.01, help = 'learning rate')
 
 def search_datasets(dataset_path):
   train_list, val_list = list(), list()
@@ -30,11 +29,12 @@ def search_datasets(dataset_path):
   return train_list, val_list
 
 def main(unused_argv):
+  [tf.config.experimental.set_memory_growth(gpu, True) for gpu in tf.config.experimental.list_physical_devices('GPU')]
   uniformer = UniformerSmall(in_channel = 4, out_channel = FLAGS.channels, groups = FLAGS.groups)
   trainer = Trainer(uniformer)
   if exists(FLAGS.ckpt): trainer.load_weight(join(FLAGS.ckpt, 'variables', 'variables'))
-  optimizer = tf.keras.optimizers.Adam(tf.keras.optimizers.schedules.CosineDecay(0, decay_steps = FLAGS.decay_steps, warmup_steps = FLAGS.warmup_steps, warmup_target = 0.1))
-  trainer.compile(optimizer = optimizer, loss = [tf.keras.losses.MeanAbsoluteError], metrics = [tf.keras.metrics.MeanAbsoluteError])
+  optimizer = tf.keras.optimizers.Adam(tf.keras.optimizers.schedules.CosineDecayRestarts(FLAGS.lr, first_decay_steps = 10000))
+  trainer.compile(optimizer = optimizer, loss = [tf.keras.losses.MeanAbsoluteError()], metrics = [tf.keras.metrics.MeanAbsoluteError()])
   train_list, val_list = search_datasets(FLAGS.dataset)
   trainset = tf.data.TFRecordDataset(train_list).map(Dataset.get_parse_function()).prefetch(FLAGS.batch_size).shuffle(FLAGS.batch_size).batch(FLAGS.batch_size)
   valset = tf.data.TFRecordDataset(val_list).map(Dataset.get_parse_function()).prefetch(FLAGS.batch_size).shuffle(FLAGS.batch_size).batch(FLAGS.batch_size)
