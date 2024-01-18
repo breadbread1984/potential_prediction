@@ -53,6 +53,8 @@ def main(unused_argv):
         grad_y = np.reshape(sample[4+(9**3)*2:4+(9**3)*3], (9,9,9))
         grad_z = np.reshape(sample[4+(9**3)*3:4+(9**3)*4], (9,9,9))
         inputs = np.expand_dims(np.stack([density, grad_x, grad_y, grad_z], axis = -1), axis = 0)
+        values = np.log(np.maximum(1e-32, np.abs(inputs)))
+        inputs = np.where(inputs >= 0, values, -values)
         pred.append(np.log(trainer(inputs).numpy()[0]))
         gt.append(sample[3])
       plt.cla()
