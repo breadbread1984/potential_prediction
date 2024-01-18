@@ -44,7 +44,7 @@ def main(unused_argv):
 
   if not exists(FLAGS.ckpt): mkdir(FLAGS.ckpt)
   checkpoint = tf.train.Checkpoint(model = trainer, optimizer = optimizer)
-  checkpoint.restore(tf.train.latest_checkpoint(FLAGS.ckpt))
+  checkpoint.restore(tf.train.latest_checkpoint(join(FLAGS.ckpt, 'ckpt')))
   
   log = tf.summary.create_file_writer(FLAGS.ckpt)
 
@@ -61,7 +61,7 @@ def main(unused_argv):
       optimizer.apply_gradients(zip(grads, trainer.trainable_variables))
       print('Step #%d loss: %f' % (optimizer.iterations, train_metric.result()))
       if optimizer.iterations % FLAGS.save_freq == 0:
-        checkpoint.save(FLAGS.ckpt)
+        checkpoint.save(join(FLAGS.ckpt, 'ckpt'))
     # evaluate
     eval_metric = tf.keras.metrics.MeanAbsoluteError(name = 'MAE')
     eval_iter = iter(valset)

@@ -28,7 +28,7 @@ def main(unused_argv):
   trainer = Trainer(uniformer)
   optimizer = tf.keras.optimizers.Adam(1e-2)
   checkpoint = tf.train.Checkpoint(model = trainer, optimizer = optimizer)
-  checkpoint.restore(tf.train.latest_checkpoint(FLAGS.ckpt))
+  checkpoint.restore(tf.train.latest_checkpoint(join(FLAGS.ckpt, 'ckpt')))
   eval_dists = [int(float(d) * 1000) for d in FLAGS.eval_dists]
   for molecule in listdir(FLAGS.input_dir):
     if not isdir(join(FLAGS.input_dir, molecule)): continue
