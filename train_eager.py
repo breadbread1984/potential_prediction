@@ -52,7 +52,7 @@ def main(unused_argv):
     # train
     train_metric = tf.keras.metrics.Mean(name = 'loss')
     train_iter = iter(trainset)
-    for sample, label in next(train_iter):
+    for sample, label in train_iter:
       with tf.GradientTape() as tape:
         pred = trainer(sample)
         loss = tf.keras.losses.MeanAbsoluteError()(label, pred)
@@ -60,12 +60,12 @@ def main(unused_argv):
       grads = tape.gradient(loss, trainer.trainable_variables)
       optimizer.apply_gradients(zip(grads, trainer.trainable_variables))
       print('Step #%d loss: %f' % (optimizer.iterations, train_metric.result()))
-    if optimizer.iterations % FLAGS.save_freq == 0:
-      checkpoint.save(FLAGS.ckpt)
+      if optimizer.iterations % FLAGS.save_freq == 0:
+        checkpoint.save(FLAGS.ckpt)
     # evaluate
     eval_metric = tf.keras.metrics.MeanAbsoluteError(name = 'MAE')
     eval_iter = iter(valset)
-    for sample, label in next(eval_iter):
+    for sample, label in eval_iter:
       pred = trainer(sample)
       eval_metric.update_state(label, pred)
       with log.as_default():
