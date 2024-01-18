@@ -50,7 +50,7 @@ def main(unused_argv):
 
   for epoch in range(FLAGS.epochs):
     # train
-    train_metric = tf.keras.Mean(name = 'loss')
+    train_metric = tf.keras.metrics.Mean(name = 'loss')
     train_iter = iter(trainset)
     for sample, label in next(train_iter):
       with tf.GradientTape() as tape:
