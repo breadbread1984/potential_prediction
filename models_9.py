@@ -37,9 +37,10 @@ def ABlock(**kwargs):
     groups = kwargs.get('groups', 1)
     # network
     inputs = tf.keras.Input((None, None, None, channel))
+    results = tf.keras.layers.BatchNormalization()(inputs)
     # positional embedding
     skip = inputs
-    pos_embed = tf.keras.layers.Conv3D(channel, kernel_size = (3,3,3), padding = 'same', groups = groups)(inputs)
+    pos_embed = tf.keras.layers.Conv3D(channel, kernel_size = (3,3,3), padding = 'same', groups = groups)(results)
     results = tf.keras.layers.Add()([skip, pos_embed])
     # attention
     skip = results
