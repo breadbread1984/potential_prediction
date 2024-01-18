@@ -1,6 +1,6 @@
 #!/usr/bin/python3
 
-from os import listdir
+from os import listdir, mkdir
 from os.path import exists, join, splitext
 from absl import app, flags
 import tensorflow as tf
