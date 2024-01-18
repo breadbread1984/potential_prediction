@@ -72,7 +72,7 @@ def main(unused_argv):
         tf.summary.scalar('mean absolute error', eval_metric.result(), step = optimizer.iterations)
       print('Step #%d MAE: %f' % (optimizer.iterations, eval_metric.result()))
 
-  checkpoint.save(FLAGS.ckpt)
+  checkpoint.save(join(FLAGS.ckpt, 'ckpt'))
 
 if __name__ == "__main__":
   add_options()
