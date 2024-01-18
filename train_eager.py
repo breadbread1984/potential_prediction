@@ -39,8 +39,8 @@ def main(unused_argv):
   optimizer = tf.keras.optimizers.Adam(tf.keras.optimizers.schedules.CosineDecayRestarts(FLAGS.lr, first_decay_steps = FLAGS.decay_steps))
 
   train_list, val_list = search_datasets(FLAGS.dataset)
-  trainset = tf.data.TFRecordDataset(train_list).map(Dataset.get_parse_function()).prefetch(batch_size).shuffle(batch_size).batch(batch_size)
-  valset = tf.data.TFRecordDataset(val_list).map(Dataset.get_parse_function()).prefetch(batch_size).shuffle(batch_size).batch(batch_size)
+  trainset = tf.data.TFRecordDataset(train_list).map(Dataset.get_parse_function()).prefetch(FLAGS.batch_size).shuffle(FLAGS.batch_size).batch(FLAGS.batch_size)
+  valset = tf.data.TFRecordDataset(val_list).map(Dataset.get_parse_function()).prefetch(FLAGS.batch_size).shuffle(FLAGS.batch_size).batch(FLAGS.batch_size)
 
   if not exists(FLAGS.ckpt): mkdir(FLAGS.ckpt)
   checkpoint = tf.train.Checkpoint(model = trainer, optimizer = optimizer)
