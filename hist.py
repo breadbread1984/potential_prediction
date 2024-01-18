@@ -28,6 +28,7 @@ def main(unused_argv):
         rho_x.extend(sample[4+9**3:4+(9**3)*2].tolist())
         rho_y.extend(sample[4+(9**3)*2:4+(9**3)*3].tolist())
         rho_z.extend(sample[4+(9**3)*3:4+(9**3)*4].tolist())
+      break
   fig, axs = plt.subplots(2,2)
   axs[0,0].set_title('rho')
   axs[0,0].hist(rho, bins = 30, color = 'skyblue', alpha = 0.8)
@@ -37,7 +38,8 @@ def main(unused_argv):
   axs[1,0].hist(rho_y, bins = 30, color = 'skyblue', alpha = 0.8)
   axs[1,1].set_title('drho/dz')
   axs[1,1].hist(rho_z, bins = 30, color = 'skyblue', alpha = 0.8)
-  axs.show()
+  plt.savefig('distribution.png')
+  plt.show()
 
 if __name__ == "__main__":
   add_options()
