@@ -26,7 +26,9 @@ def main(unused_argv):
   set_configs()
   uniformer = UniformerSmall(in_channel = 4, out_channel = FLAGS.channels, groups = FLAGS.groups)
   trainer = Trainer(uniformer)
-  trainer.load_weights(join(FLAGS.ckpt, 'ckpt', 'variables', 'variables'))
+  optimizer = tf.keras.optimizers.Adam(1e-2)
+  checkpoint = tf.train.Checkpoint(model = trainer, optimizer = optimizer)
+  checkpoint.restore(tf.train.latest_checkpoint(FLAGS.ckpt))
   eval_dists = [int(float(d) * 1000) for d in FLAGS.eval_dists]
   for molecule in listdir(FLAGS.input_dir):
     if not isdir(join(FLAGS.input_dir, molecule)): continue
