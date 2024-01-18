@@ -121,8 +121,8 @@ def UniformerBase(**kwargs):
 def Trainer(model):
     inputs = tf.keras.Input((9,9,9,4))
     results = model(inputs)
-    results = tf.keras.layers.Dense(64, activation = tf.keras.activations.gelu)(results) # results.shape = (batch, 64)
-    results = tf.keras.layers.Dense(1, activation = tf.keras.activations.linear)(results) # results.shape = (batch, 1)
+    results = tf.keras.layers.Dense(20, activation = tf.keras.activations.relu)(results) # results.shape = (batch, 20)
+    results = tf.keras.layers.Dense(1)(results) # results.shape = (batch, 1)
     return tf.keras.Model(inputs = inputs, outputs = results)
 
 if __name__ == "__main__":
