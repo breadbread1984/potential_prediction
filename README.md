@@ -19,7 +19,7 @@ python3 create_dataset.py --input_dir <path/to/raw/dataset> --output_dir <path/t
 ## training
 
 ```shell
-python3 train.py --dataset <path/to/directory/for/tfrecord> [--ckpt <path/to/checkpoint>] [--batch_size <batch size>] [--lr <learning rate>] [--dist]
+python3 train_eager.py --dataset <path/to/directory/for/tfrecord> [--ckpt <path/to/checkpoint>] [--batch_size <batch size>] [--lr <learning rate>] [--dist]
 ```
 
 |param | description |
