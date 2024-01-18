@@ -37,10 +37,9 @@ def ABlock(**kwargs):
     groups = kwargs.get('groups', 1)
     # network
     inputs = tf.keras.Input((None, None, None, channel))
-    results = tf.keras.layers.BatchNormalization()(inputs)
     # positional embedding
     skip = inputs
-    pos_embed = tf.keras.layers.Conv3D(channel, kernel_size = (3,3,3), padding = 'same', groups = groups)(results)
+    pos_embed = tf.keras.layers.Conv3D(channel, kernel_size = (3,3,3), padding = 'same', groups = groups)(inputs)
     results = tf.keras.layers.Add()([skip, pos_embed])
     # attention
     skip = results
@@ -86,7 +85,8 @@ def Uniformer(**kwargs):
     dpr = [x.item() for x in np.linspace(0, global_drop_path_rate, sum(depth))]
     # network
     inputs = tf.keras.Input((None, None, None, in_channel)) # inputs.shape = (batch, t, h, w, in_channel)
-    results = tf.keras.layers.Conv3D(hidden_channels[0], kernel_size = (3, 3, 3), padding = 'same')(inputs) # results.shape = (batch, t, h, w, hidden_channels[0])
+    results = tf.keras.layers.BatchNormalization()(inputs)
+    results = tf.keras.layers.Conv3D(hidden_channels[0], kernel_size = (3, 3, 3), padding = 'same')(results) # results.shape = (batch, t, h, w, hidden_channels[0])
     results = tf.keras.layers.LayerNormalization()(results)
     results = tf.keras.layers.Dropout(rate = drop_rate)(results)
     # do attention only when the feature shape is small enough
