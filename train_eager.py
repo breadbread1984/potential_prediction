@@ -38,6 +38,7 @@ def main(unused_argv):
   trainer = Trainer(uniformer)
   optimizer = tf.keras.optimizers.Adam(tf.keras.optimizers.schedules.CosineDecayRestarts(FLAGS.lr, first_decay_steps = FLAGS.decay_steps))
 
+  train_list, val_list = search_datasets(FLAGS.dataset)
   trainset = tf.data.TFRecordDataset(train_list).map(Dataset.get_parse_function()).prefetch(batch_size).shuffle(batch_size).batch(batch_size)
   valset = tf.data.TFRecordDataset(val_list).map(Dataset.get_parse_function()).prefetch(batch_size).shuffle(batch_size).batch(batch_size)
 
