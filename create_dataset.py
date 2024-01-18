@@ -78,7 +78,7 @@ class Dataset(object):
       y = tf.io.parse_tensor(feature['y'], out_type = tf.float32)
       y = tf.reshape(y, ())
       assert y.shape == ()
-      return x, tf.math.exp(y)
+      return x, y
     return parse_function
 
 def main(unused_argv):
