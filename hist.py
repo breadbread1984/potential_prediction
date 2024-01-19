@@ -11,6 +11,14 @@ FLAGS = flags.FLAGS
 def add_options():
   flags.DEFINE_string('input_dir', default = None, help = 'path to directory containing npy')
 
+def preprocess(data):
+  return value
+  '''
+  value = np.maximum(1e-32 * np.ones_like(data), data)
+  value = np.where(value >= 0, value, -value)
+  return 1 / value
+  '''
+
 def main(unused_argv):
   rho = list()
   rho_x = list()
@@ -24,10 +32,10 @@ def main(unused_argv):
       npy_path = join(FLAGS.input_dir, molecule, bond)
       samples = np.load(npy_path)
       for sample in samples:
-        rho.extend(sample[4:4+9**3].tolist())
-        rho_x.extend(sample[4+9**3:4+(9**3)*2].tolist())
-        rho_y.extend(sample[4+(9**3)*2:4+(9**3)*3].tolist())
-        rho_z.extend(sample[4+(9**3)*3:4+(9**3)*4].tolist())
+        rho.extend(preprocess(sample[4:4+9**3]).tolist())
+        rho_x.extend(preprocess(sample[4+9**3:4+(9**3)*2]).tolist())
+        rho_y.extend(preprocess(sample[4+(9**3)*2:4+(9**3)*3]).tolist())
+        rho_z.extend(preprocess(sample[4+(9**3)*3:4+(9**3)*4]).tolist())
       break
   fig, axs = plt.subplots(2,2)
   axs[0,0].set_title('rho')
