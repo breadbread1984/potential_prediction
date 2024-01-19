@@ -83,6 +83,6 @@ if __name__ == "__main__":
   results = att(inputs)
   print(results.shape)
   ablock = ABlock(input_size = 9)
-  inputs = torch.randn(2, 4, 9, 9, 9)
+  inputs = torch.randn(2, 768, 9, 9, 9)
   results = ablock(inputs)
   print(results.shape)
