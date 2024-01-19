@@ -17,10 +17,10 @@ class Attention(nn.Module):
     self.dropout2 = nn.Dropout(self.drop_rate)
   def forward(self, inputs):
     # inputs.shape = (batch, channel, seq_len)
-    results = self.dense1(inputs) # results.shape = (batch, 3 * channel, seq_len)
-    b, _, s = results.shape
-    results = results.view(b, 3, self.channel // self.num_heads, self.num_heads, s) # results.shape = (batch, 3, channel // head, head, seq_len)
-    results = torch.permute(results, (0, 1, 3, 4, 2)) # results.shape = (batch, 3, head, seq_len, channel // head)
+    results = self.dense1(torch.transpose(inputs, 1, 2)) # results.shape = (batch, seq_len, 3 * channel)
+    b, s, _ = results.shape
+    results = results.view(b, s, 3, self.num_heads, self.channel // self.num_heads) # results.shape = (batch, seq_len, 3, head, channel // head)
+    results = torch.permute(results, (0, 2, 3, 1, 4)) # results.shape = (batch, 3, head, seq_len, channel // head)
     q, k, v = results[:,0,...], results[:,1,...], results[:,2,...] # shape = (batch, head, seq_len, channel // head)
     qk = torch.matmul(q, torch.transpose(k, 2, 3)) # qk.shape = (batch, head, seq_len, seq_len)
     attn = torch.softmax(qk, dim = -1) # attn.shape = (batch, head, seq_len, seq_len)
