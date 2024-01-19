@@ -78,9 +78,9 @@ class Dataset(object):
       y = tf.io.parse_tensor(feature['y'], out_type = tf.float32)
       y = tf.reshape(y, ())
       assert y.shape == ()
-      value = tf.math.log(tf.maximum(1e-32 * tf.ones_like(x), tf.math.abs(x)))
+      value = tf.maximum(1e-32 * tf.ones_like(x), tf.math.abs(x))
       x = tf.where(tf.math.greater_equal(x, 0), value, -value)
-      return x, tf.math.exp(y)
+      return 1/x, tf.math.exp(y)
     return parse_function
 
 def main(unused_argv):
