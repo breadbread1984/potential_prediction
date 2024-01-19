@@ -77,6 +77,46 @@ class ABlock(nn.Module):
     results = skip + results
     return results
 
+class Predictor(nn.Module):
+  def __init__(self, **kwargs):
+    super(Predictor, self).__init__(**kwargs)
+    self.in_channel = kwargs.get('in_channel', 3)
+    self.out_channel = kwargs.get('out_channel', None)
+    self.hidden_channels = kwargs.get('hidden_channels', [128, 512])
+    self.depth = kwargs.get('depth', [8, 3])
+    self.mlp_ratio = kwargs.get('mlp_ratio', 4.)
+    self.drop_rate = kwargs.get('drop_rate', 0.1)
+    self.qkv_bias = kwargs.get('qkv_bias', False)
+    self.num_heads = kwargs.get('num_heads', 8)
+    self.groups = kwargs.get('groups', 1)
+    
+    self.batchnorm1 = nn.BatchNorm3d(4)
+    self.batchnorm2 = nn.BatchNorm3d(self.hidden_channels[1])
+    self.conv1 = nn.Conv3d(4, self.hidden_channels[0], kernel_size = (3,3,3), padding = 'same')
+    self.conv2 = nn.Conv3d(self.hidden_channels[0], self.hidden_channels[1], kernel_size = (3,3,3), stride = 3, padding = 'same', groups = self.groups)
+    self.conv3 = nn.Conv3d(self.hidden_channels[1], self.hidden_channels[1], kernel_size = (3,3,3), stride = 3, padding = 'same', groups = self.groups)
+    self.layernorm1 = nn.LayerNorm([self.hidden_channels[0], 9, 9, 9])
+    self.layernorm2 = nn.LayerNorm([self.hidden_channels[1], 3, 3, 3])
+    self.dropout1 = nn.Dropout(self.drop_rate)
+    self.block1 = nn.ModuleList([ABlock(input_size = 9, channel = self.hidden_channels[0], qkv_bias = self.qkv_bias, num_heads = self.num_heads, **kwargs) for i in range(self.depth[0])])
+    self.block2 = nn.ModuleList([ABlock(input_size = 3, channel = self.hidden_channels[1], qkv_bias = self.qkv_bias, num_heads = self.num_heads, **kwargs) for i in range(self.depth[1])])
+  def forward(self, inputs):
+    # inputs.shape = (batch, 4, 9, 9, 9)
+    results = self.batchnorm1(inputs)
+    results = self.conv1(results) # results.shape = (batch, hidden_channels[0], 9, 9, 9)
+    results = self.layernorm1(results)
+    results = self.dropout1(results)
+    # do attention only when the feature shape is small enough
+    for i in range(self.depth[0]):
+      results = self.block1[i](results)
+    results = self.conv2(results) # results.shape = (batch, hidden_channels[1], 3, 3, 3)
+    results = self.layernorm2(results)
+    for i in range(self.depth[1]):
+      results = self.block2[i](results)
+    results = self.conv3(results) # results.shape = (batch, hidden_channels[1], 1, 1, 1)
+    results = self.batchnorm2(results)
+    results = torch.squeeze
+
 if __name__ == "__main__":
   att = Attention()
   inputs = torch.randn(2, 768, 10)
