@@ -32,7 +32,7 @@ class Attention(nn.Module):
     results = torch.transpose(results, 1, 2) # results.shape = (batch, channel, seq_len)
     return results
 
-def ABlock(nn.Module):
+class ABlock(nn.Module):
   def __init__(self, input_size, **kwargs):
     super(ABlock, self).__init__(**kwargs)
     self.input_size = input_size
@@ -52,7 +52,7 @@ def ABlock(nn.Module):
     self.dropout1 = nn.Dropout(self.drop_rate)
     self.dropout2 = nn.Dropout(self.drop_rate)
     self.atten = Attention(**kwargs)
-  def call(self, inputs):
+  def forward(self, inputs):
     # inputs.shape = (batch, c, t, h, w)
     # positional embedding
     skip = inputs
@@ -81,4 +81,8 @@ if __name__ == "__main__":
   att = Attention()
   inputs = torch.randn(2, 768, 10)
   results = att(inputs)
+  print(results.shape)
+  ablock = ABlock(input_size = 9)
+  inputs = torch.randn(2, 4, 9, 9, 9)
+  results = ablock(inputs)
   print(results.shape)
