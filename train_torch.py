@@ -2,6 +2,7 @@
 
 from absl import flags, app
 from create_dataset_torch import RhoDataset
+from torch.utils.data import DataLoader
 
 FLAGS = flags.FLAGS
 
