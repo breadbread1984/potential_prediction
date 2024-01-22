@@ -17,7 +17,7 @@ def add_options():
   flags.DEFINE_list('eval_dists', default = ['1.7'], help = 'bond distances which are used as evaluation dataset')
   flags.DEFINE_integer('pool_size', default = 16, help = 'size of multiprocess pool')
 
-def extract(npy_path, tfrecord):
+def extract(npy_path, output_path):
   samples = np.load(npy_path)
   for sample in samples:
     potential = sample[3]
@@ -27,7 +27,7 @@ def extract(npy_path, tfrecord):
     grad_z = np.reshape(sample[4+(9**3)*3:4+(9**3)*4], (9,9,9))
     x = np.stack([density, grad_x, grad_y, grad_z], axis = 0)
     y = potential
-    np.savez('%s.npz' % str(uuid1()), x = x, y = y)
+    np.savez(join(output_path, '%s.npz' % str(uuid1())), x = x, y = y)
 
 def main(unused_argv):
   eval_dists = [int(float(d) * 1000) for d in FLAGS.eval_dists]
