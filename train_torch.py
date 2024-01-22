@@ -48,8 +48,8 @@ def main(unused_argv):
   if exists(join(FLAGS.ckpt, 'model.pth')): model = load(join(FLAGS.ckpt, 'model.pth'))
   for epoch in range(FLAGS.epochs):
     model.train()
-    for sample in train_dataloader:
-      rho, potential = sample['rho'].to(device(FLAGS.device)), sample['potential'].to(device(FLAGS.device))
+    for x, y in train_dataloader:
+      rho, potential = x.to(device(FLAGS.device)), y.to(device(FLAGS.device))
       preds = model(rho)
       loss = mae(potential, preds)
       loss.backward()
@@ -63,8 +63,8 @@ def main(unused_argv):
     scheduler.step()
     with no_grad():
       model.eval()
-      for sample in eval_dataloader:
-        rho, potential = sample['rho'].to(device(FLAGS.device)), sample['potential'].to(device(FLAGS.device))
+      for x, y in eval_dataloader:
+        rho, potential = x.to(device(FLAGS.device)), y.to(device(FLAGS.device))
         preds = model(rho)
         print('evaluate: loss %f' % metrics.update(preds, potential))
 
