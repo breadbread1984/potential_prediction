@@ -77,9 +77,9 @@ class ABlock(nn.Module):
     results = skip + results
     return results
 
-class Predictor(nn.Module):
+class Extractor(nn.Module):
   def __init__(self, **kwargs):
-    super(Predictor, self).__init__(**kwargs)
+    super(Extractor, self).__init__(**kwargs)
     self.in_channel = kwargs.get('in_channel', 3)
     self.out_channel = kwargs.get('out_channel', None)
     self.hidden_channels = kwargs.get('hidden_channels', [128, 512])
@@ -115,7 +115,40 @@ class Predictor(nn.Module):
       results = self.block2[i](results)
     results = self.conv3(results) # results.shape = (batch, hidden_channels[1], 1, 1, 1)
     results = self.batchnorm2(results)
-    results = torch.squeeze
+    results = torch.squeeze(results, (2,3,4)) # results.shape = (batch, hidden_channels[1])
+    return results
+
+class Predictor(nn.Module):
+  def __init__(self, **kwargs):
+    super(Predictor, self).__init__(**kwargs)
+    self.predictor = Extractor(hidden_channels = hidden_channels, depth = depth, **kwargs)
+    self.dense1 = nn.Linear(kwargs.get('out_channel', 768), 20)
+    self.gelu = nn.GELU()
+    self.dense2 = nn.Linear(20, 1)
+  def forward(self, inputs):
+    results = self.predictor(inputs)
+    results = self.dense1(results)
+    results = self.gelu(results)
+    results = self.dense2(results)
+    return results
+
+class PredictorSmall(nn.Module):
+  def __init__(self, **kwargs):
+    super(PredictorSmall, self).__init__(**kwargs)
+    hidden_channels = kwargs.get('hidden_channels', [128, 512])
+    depth = kwargs.get('depth', [8, 3])
+    self.predictor = Predictor(hidden_channels = hidden_channels, depth = depth, **kwargs)
+  def forward(self, inputs):
+    return self.predictor(inputs)
+
+class PredictorBase(nn.Module):
+  def __init__(self, **kwargs):
+    super(PredictorBase, self).__init__(**kwargs)
+    hidden_channels = kwargs.get('hidden_channels', [128, 512])
+    depth = kwargs.get('depth', [20, 7])
+    self.predictor = Predictor(hidden_channels = hidden_channels, depth = depth, **kwargs)
+  def forward(self, inputs):
+    return self.predictor(inputs)
 
 if __name__ == "__main__":
   att = Attention()
@@ -125,4 +158,8 @@ if __name__ == "__main__":
   ablock = ABlock(input_size = 9)
   inputs = torch.randn(2, 768, 9, 9, 9)
   results = ablock(inputs)
+  print(results.shape)
+  predictor = PredictorSmall(in_channel = 4, out_channel = 768, groups = 1)
+  inputs = torch.randn(2, 9, 9, 9, 4)
+  results = predictor(inputs)
   print(results.shape)
