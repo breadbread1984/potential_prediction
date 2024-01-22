@@ -56,7 +56,7 @@ def main(unused_argv):
       optimizer.step()
       global_steps += 1
       if global_steps % 100 == 0:
-        print('#%d steps #%d epoch: loss %f' % (global_steps, epochs, loss))
+        print('#%d steps #%d epoch: loss %f' % (global_steps, epoch, loss))
         tb_writer.add_scalar('loss', loss, global_steps)
       if global_steps % FLAGS.save_freq == 0:
         save(model, join(FLAGS.ckpt, 'model.pth'))
