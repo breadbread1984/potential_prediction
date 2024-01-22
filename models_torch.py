@@ -1,7 +1,9 @@
 #!/usr/bin/python3
 
+import math
 import torch
 from torch import nn
+import torch.nn.functional as F
 
 class Attention(nn.Module):
   def __init__(self, **kwargs):
