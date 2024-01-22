@@ -104,7 +104,7 @@ class Extractor(nn.Module):
     self.num_heads = kwargs.get('num_heads', 8)
     self.groups = kwargs.get('groups', 1)
     
-    self.batchnorm1 = nn.BatchNorm3d(4)
+    #self.batchnorm1 = nn.BatchNorm3d(4)
     self.batchnorm2 = nn.BatchNorm3d(self.hidden_channels[1])
     self.conv1 = nn.Conv3d(4, self.hidden_channels[0], kernel_size = (3,3,3), padding = 'same')
     self.conv2 = Conv3dSame(self.hidden_channels[0], self.hidden_channels[1], kernel_size = (3,3,3), stride = 3, groups = self.groups)
@@ -116,8 +116,8 @@ class Extractor(nn.Module):
     self.block2 = nn.ModuleList([ABlock(input_size = 3, channel = self.hidden_channels[1], qkv_bias = self.qkv_bias, num_heads = self.num_heads, **kwargs) for i in range(self.depth[1])])
   def forward(self, inputs):
     # inputs.shape = (batch, 4, 9, 9, 9)
-    results = self.batchnorm1(inputs)
-    results = self.conv1(results) # results.shape = (batch, hidden_channels[0], 9, 9, 9)
+    #results = self.batchnorm1(inputs)
+    results = self.conv1(inputs) # results.shape = (batch, hidden_channels[0], 9, 9, 9)
     results = self.layernorm1(results)
     results = self.dropout1(results)
     # do attention only when the feature shape is small enough
