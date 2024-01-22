@@ -31,8 +31,8 @@ def add_options():
 
 def main(unused_argv):
   eval_dists = [int(float(d) * 1000) for d in FLAGS.eval_dists]
-  trainset = RhoDataset(FLAGS.dataset, eval_dists, True)
-  evalset = RhoDataset(FLAGS.dataset, eval_dists, False)
+  trainset = RhoDataset(join(FLAGS.dataset, 'train'))
+  evalset = RhoDataset(join(FLAGS.dataset, 'val'))
   print('trainset size: %d, evalset size: %d' % (len(trainset), len(evalset)))
   train_dataloader = DataLoader(trainset, batch_size = FLAGS.batch_size, shuffle = True, num_workers = FLAGS.batch_size)
   eval_dataloader = DataLoader(evalset, batch_size = FLAGS.batch_size, shuffle = True, num_workers = FLAGS.batch_size)
