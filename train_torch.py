@@ -5,6 +5,7 @@ from os import mkdir
 from os.path import exists
 from torch import device, save, no_grad
 from torch.nn import L1Loss
+from torch.optim import Adam
 from torch.optim.lr_scheduler import CosineAnnealingWarmRestarts
 from torch.utils.data import DataLoader
 from torch.utils.tensorboard import SummaryWriter
