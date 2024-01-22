@@ -1,8 +1,16 @@
 #!/usr/bin/python3
 
 from absl import flags, app
-from create_dataset_torch import RhoDataset
+from os import mkdir
+from os.path import exists
+from torch import device, save, no_grad
+from torch.nn import L1Loss
+from torch.optim.lr_scheduler import CosineAnnealingWarmRestarts
 from torch.utils.data import DataLoader
+from torch.utils.tensorboard import summaryWriter
+from torchmetrics.regression import MeanAbsoluteError
+from create_dataset_torch import RhoDataset
+from models_torch import PredictorSmall
 
 FLAGS = flags.FLAGS
 
@@ -17,17 +25,47 @@ def add_options():
   flags.DEFINE_float('lr', default = 0.01, help = 'learning rate')
   flags.DEFINE_integer('decay_steps', default = 200000, help = 'decay steps')
   flags.DEFINE_list('eval_dists', default = ['1.7',], help = 'bond distances which are used as evaluation dataset')
+  flags.DEFINE_integer('workers', default = 4, help = 'number of workers')
+  flags.DEFINE_enum('device', default = 'cuda', enum_values = ['cpu', 'cuda'], help = 'device')
 
 def main(unused_argv):
   eval_dists = [int(float(d) * 1000) for d in FLAGS.eval_dists]
   trainset = RhoDataset(FLAGS.dataset, eval_dists, True)
   evalset = RhoDataset(FLAGS.dataset, eval_dists, False)
   print('trainset size: %d, evalset size: %d' % (len(trainset), len(evalset)))
-  train_dataloader = DataLoader(trainset, batch_size = FLAGS.batch_size, shuffle = True)
-  eval_dataloader = DataLoader(evalset, batch_size = FLAGS.batch_size, shuffle = True)
-  for sample, label in train_dataloader:
-    print(sample.shape, label.shape)
-    break
+  train_dataloader = DataLoader(trainset, batch_size = FLAGS.batch_size, shuffle = True, num_workers = FLAGS.batch_size)
+  eval_dataloader = DataLoader(evalset, batch_size = FLAGS.batch_size, shuffle = True, num_workers = FLAGS.batch_size)
+  model = PredictorSmall(in_channel = 4, out_channel = FLAGS.channels, groups = FLAGS.groups)
+  model.to(device(FLAGS.device))
+  mae = L1Loss()
+  optimizer = Adam(model.parameters(), lr = FLAGS.lr)
+  scheduler = CosineAnnealingWarmRestarts(optimizer, T_0 = 5)
+  metrics = MeanAbsoluteError()
+  tb_writer = SummaryWriter(log_dir = join(FLAGS.ckpt, 'summaries'))
+  global_steps = 0
+  if not exists(FLAGS.ckpt): mkdir(FLAGS.ckpt)
+  if exists(join(FLAGS.ckpt, 'model.pth')): model = load(join(FLAGS.ckpt, 'model.pth'))
+  for epoch in range(FLAGS.epochs):
+    model.train()
+    for sample in train_dataloader:
+      rho, potential = sample['rho'].to(device(FLAGS.device)), sample['potential'].to(device(FLAGS.device))
+      preds = model(rho)
+      loss = mae(potential, preds)
+      loss.backward()
+      optimizer.step()
+      global_steps += 1
+      if global_steps % 100 == 0:
+        print('#%d steps #%d epoch: loss %f' % (global_steps, epochs, loss))
+        tb_writer.add_scalar('loss', loss, global_steps)
+      if global_steps % FLAGS.save_freq == 0:
+        save(model, join(FLAGS.ckpt, 'model.pth'))
+    scheduler.step()
+    with no_grad():
+      model.eval()
+      for sample in eval_dataloader:
+        rho, potential = sample['rho'].to(device(FLAGS.device)), sample['potential'].to(device(FLAGS.device))
+        preds = model(rho)
+        print('evaluate: loss %f' % metrics.update(preds, potential))
 
 if __name__ == "__main__":
   add_options()
