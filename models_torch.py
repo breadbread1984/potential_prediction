@@ -172,6 +172,6 @@ if __name__ == "__main__":
   results = ablock(inputs)
   print(results.shape)
   predictor = PredictorSmall(in_channel = 4, out_channel = 768, groups = 1)
-  inputs = torch.randn(2, 9, 9, 9, 4)
+  inputs = torch.randn(2, 4, 9, 9, 9)
   results = predictor(inputs)
   print(results.shape)
