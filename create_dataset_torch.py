@@ -19,7 +19,7 @@ class RhoDataset(Dataset):
         is_train_sample = True if distance not in eval_dists else False
         if train == is_train_sample:
           data = np.load(join(dataset_dir, molecule, bond))
-          self.sample_list((join(dataset_dir, molecule, bond), self.sample_count, self.sample_count + data.shape[0]))
+          self.file_list.append((join(dataset_dir, molecule, bond), self.sample_count, self.sample_count + data.shape[0]))
           self.sample_count += data.shape[0]
   def __len__(self):
     return self.sample_count
