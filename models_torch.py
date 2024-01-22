@@ -77,6 +77,18 @@ class ABlock(nn.Module):
     results = skip + results
     return results
 
+class Conv3dSame(nn.Conv3d):
+  def calc_same_pad(self, i: int, k: int, s: int, d: int) -> int:
+    return max((math.ceil(i / s) - 1) * s + (k - 1) * d + 1 - i, 0)
+  def forward(self, x: torch.Tensor) -> torch.Tensor:
+    it, ih, iw = x.size()[-3:]
+    pad_t = self.calc_same_pad(i = it, k = self.kernel_size[0], s = self.stride[0], d = self.dilation[0])
+    pad_h = self.calc_same_pad(i = ih, k = self.kernel_size[1], s = self.stride[1], d = self.dilation[1])
+    pad_w = self.calc_same_pad(i = iw, k = self.kernel_size[2], s = self.stride[2], d = self.dilation[2])
+    if pad_t > 0 or pad_h > 0 or pad_w > 0:
+      x = F.pad(x, [pad_w // 2, pad_w - pad_w // 2, pad_h // 2, pad_h - pad_h // 2, pad_t // 2, pad_t - pad_t // 2])
+    return F.conv3d(x, self.weight, self.bias, self.stride, self.padding, self.dilation, self.groups)
+
 class Extractor(nn.Module):
   def __init__(self, **kwargs):
     super(Extractor, self).__init__()
@@ -93,8 +105,8 @@ class Extractor(nn.Module):
     self.batchnorm1 = nn.BatchNorm3d(4)
     self.batchnorm2 = nn.BatchNorm3d(self.hidden_channels[1])
     self.conv1 = nn.Conv3d(4, self.hidden_channels[0], kernel_size = (3,3,3), padding = 'same')
-    self.conv2 = nn.Conv3d(self.hidden_channels[0], self.hidden_channels[1], kernel_size = (3,3,3), stride = 3, padding = 'same', groups = self.groups)
-    self.conv3 = nn.Conv3d(self.hidden_channels[1], self.hidden_channels[1], kernel_size = (3,3,3), stride = 3, padding = 'same', groups = self.groups)
+    self.conv2 = Conv3dSame(self.hidden_channels[0], self.hidden_channels[1], kernel_size = (3,3,3), stride = 3, groups = self.groups)
+    self.conv3 = Conv3dSame(self.hidden_channels[1], self.hidden_channels[1], kernel_size = (3,3,3), stride = 3, groups = self.groups)
     self.layernorm1 = nn.LayerNorm([self.hidden_channels[0], 9, 9, 9])
     self.layernorm2 = nn.LayerNorm([self.hidden_channels[1], 3, 3, 3])
     self.dropout1 = nn.Dropout(self.drop_rate)
