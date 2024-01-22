@@ -5,7 +5,7 @@ from torch import nn
 
 class Attention(nn.Module):
   def __init__(self, **kwargs):
-    super(Attention, self).__init__(**kwargs)
+    super(Attention, self).__init__()
     self.channel = kwargs.get('channel', 768)
     self.num_heads = kwargs.get('num_heads', 8)
     self.qkv_bias = kwargs.get('qkv_bias', False)
@@ -34,7 +34,7 @@ class Attention(nn.Module):
 
 class ABlock(nn.Module):
   def __init__(self, input_size, **kwargs):
-    super(ABlock, self).__init__(**kwargs)
+    super(ABlock, self).__init__()
     self.input_size = input_size
     self.channel = kwargs.get('channel', 768)
     self.mlp_ratio = kwargs.get('mlp_ratio', 4)
@@ -79,7 +79,7 @@ class ABlock(nn.Module):
 
 class Extractor(nn.Module):
   def __init__(self, **kwargs):
-    super(Extractor, self).__init__(**kwargs)
+    super(Extractor, self).__init__()
     self.in_channel = kwargs.get('in_channel', 3)
     self.out_channel = kwargs.get('out_channel', None)
     self.hidden_channels = kwargs.get('hidden_channels', [128, 512])
@@ -120,8 +120,8 @@ class Extractor(nn.Module):
 
 class Predictor(nn.Module):
   def __init__(self, **kwargs):
-    super(Predictor, self).__init__(**kwargs)
-    self.predictor = Extractor(hidden_channels = hidden_channels, depth = depth, **kwargs)
+    super(Predictor, self).__init__()
+    self.predictor = Extractor(**kwargs)
     self.dense1 = nn.Linear(kwargs.get('out_channel', 768), 20)
     self.gelu = nn.GELU()
     self.dense2 = nn.Linear(20, 1)
@@ -134,7 +134,7 @@ class Predictor(nn.Module):
 
 class PredictorSmall(nn.Module):
   def __init__(self, **kwargs):
-    super(PredictorSmall, self).__init__(**kwargs)
+    super(PredictorSmall, self).__init__()
     hidden_channels = kwargs.get('hidden_channels', [128, 512])
     depth = kwargs.get('depth', [8, 3])
     self.predictor = Predictor(hidden_channels = hidden_channels, depth = depth, **kwargs)
@@ -143,7 +143,7 @@ class PredictorSmall(nn.Module):
 
 class PredictorBase(nn.Module):
   def __init__(self, **kwargs):
-    super(PredictorBase, self).__init__(**kwargs)
+    super(PredictorBase, self).__init__()
     hidden_channels = kwargs.get('hidden_channels', [128, 512])
     depth = kwargs.get('depth', [20, 7])
     self.predictor = Predictor(hidden_channels = hidden_channels, depth = depth, **kwargs)
