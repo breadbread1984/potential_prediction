@@ -24,7 +24,7 @@ class RhoDataset(Dataset):
   def __len__(self):
     return self.sample_count
   def __getitem__(self, idx):
-    which_file = list(filtered(lambda x: x[1] <= idx < x[2], self.file_list))
+    which_file = list(filter(lambda x: x[1] <= idx < x[2], self.file_list))
     npy_path, lower, upper = which_file[0]
     sample = np.load(npy_path)[idx - lower]
     potential = sample[3]
