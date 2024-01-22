@@ -7,7 +7,7 @@ from torch import device, save, no_grad
 from torch.nn import L1Loss
 from torch.optim.lr_scheduler import CosineAnnealingWarmRestarts
 from torch.utils.data import DataLoader
-from torch.utils.tensorboard import summaryWriter
+from torch.utils.tensorboard import SummaryWriter
 from torchmetrics.regression import MeanAbsoluteError
 from create_dataset_torch import RhoDataset
 from models_torch import PredictorSmall
