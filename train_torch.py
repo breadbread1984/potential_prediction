@@ -9,7 +9,7 @@ from torch.optim import Adam
 from torch.optim.lr_scheduler import CosineAnnealingWarmRestarts
 from torch.utils.data import DataLoader
 from torch.utils.tensorboard import SummaryWriter
-from torchmetrics.regression import MeanAbsoluteError
+import torchmetrics
 from create_dataset_torch import RhoDataset
 from models_torch import PredictorSmall
 
@@ -41,7 +41,6 @@ def main(unused_argv):
   mae = L1Loss()
   optimizer = Adam(model.parameters(), lr = FLAGS.lr)
   scheduler = CosineAnnealingWarmRestarts(optimizer, T_0 = 5)
-  metrics = MeanAbsoluteError()
   tb_writer = SummaryWriter(log_dir = join(FLAGS.ckpt, 'summaries'))
   global_steps = 0
   if not exists(FLAGS.ckpt): mkdir(FLAGS.ckpt)
@@ -66,7 +65,7 @@ def main(unused_argv):
       for x, y in eval_dataloader:
         rho, potential = x.to(device(FLAGS.device)), y.to(device(FLAGS.device))
         preds = model(rho)
-        print('evaluate: loss %f' % metrics.update(preds, potential))
+        print('evaluate: loss %f' % torchmetrics.functional.mean_absolute_error(preds, potential))
 
 if __name__ == "__main__":
   add_options()
