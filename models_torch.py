@@ -136,7 +136,7 @@ class Predictor(nn.Module):
   def __init__(self, **kwargs):
     super(Predictor, self).__init__()
     self.predictor = Extractor(**kwargs)
-    self.dense1 = nn.Linear(kwargs.get('out_channel', 768), 20)
+    self.dense1 = nn.Linear(kwargs.get('hidden_channels')[-1], 20)
     self.gelu = nn.GELU()
     self.dense2 = nn.Linear(20, 1)
   def forward(self, inputs):
