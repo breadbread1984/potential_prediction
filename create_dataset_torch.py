@@ -59,7 +59,7 @@ class RhoDataset(Dataset):
     return len(self.file_list)
   def __getitem__(self, idx):
     data = np.load(self.file_list[idx])
-    return data['x'], data['y']
+    return data['x'].astype(np.float32), data['y'].astype(np.float32)
 
 if __name__ == "__main__":
   add_options()
