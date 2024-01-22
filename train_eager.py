@@ -59,9 +59,11 @@ def main(unused_argv):
       train_metric.update_state(loss)
       grads = tape.gradient(loss, trainer.trainable_variables)
       optimizer.apply_gradients(zip(grads, trainer.trainable_variables))
-      print('Step #%d loss: %f' % (optimizer.iterations, train_metric.result()))
+      print('Step #%d epoch: %d loss: %f' % (optimizer.iterations, epoch, train_metric.result()))
       if optimizer.iterations % FLAGS.save_freq == 0:
         checkpoint.save(join(FLAGS.ckpt, 'ckpt'))
+        with log.as_default():
+          tf.summary.scalar('loss', train_metric.result(), step = optimizer.iterations)
     # evaluate
     eval_metric = tf.keras.metrics.MeanAbsoluteError(name = 'MAE')
     eval_iter = iter(valset)
@@ -70,7 +72,7 @@ def main(unused_argv):
       eval_metric.update_state(label, pred)
       with log.as_default():
         tf.summary.scalar('mean absolute error', eval_metric.result(), step = optimizer.iterations)
-      print('Step #%d MAE: %f' % (optimizer.iterations, eval_metric.result()))
+      print('Step #%d epoch: %d MAE: %f' % (optimizer.iterations, epoch, eval_metric.result()))
 
   checkpoint.save(join(FLAGS.ckpt, 'ckpt'))
 
