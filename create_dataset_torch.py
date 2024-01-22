@@ -35,7 +35,7 @@ class RhoDataset(Dataset):
     grad_x = np.reshape(sample[4+9**3:4+(9**3)*2], (9,9,9))
     grad_y = np.reshape(sample[4+(9**3)*2:4+(9**3)*3], (9,9,9))
     grad_z = np.reshape(sample[4+(9**3)*3:4+(9**3)*4], (9,9,9))
-    sample = {'rho': np.stack([density, grad_x, grad_y, grad_z], axis = -1), 'potential': potential}
+    sample = {'rho': np.stack([density, grad_x, grad_y, grad_z], axis = 0), 'potential': potential}
 
 if __name__ == "__main__":
   pass
