@@ -50,7 +50,13 @@ def main(unused_argv):
     for x, y in train_dataloader:
       rho, potential = x.to(device(FLAGS.device)), y.to(device(FLAGS.device))
       preds = model(rho)
+      if torch.any(torch.isnan(preds)):
+        print('there is nan in prediction results!')
+        continue
       loss = mae(potential, preds)
+      if torch.any(torch.isnan(loss)):
+        print('there is nan in loss!')
+        continue
       loss.backward()
       optimizer.step()
       global_steps += 1
