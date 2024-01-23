@@ -4,7 +4,7 @@ from absl import flags, app
 from os import mkdir
 from os.path import exists, join
 from torch import device, save, load, no_grad, any, isnan
-from torch.nn import L1Loss
+from torch.nn import MSELoss
 from torch.optim import Adam
 from torch.optim.lr_scheduler import CosineAnnealingWarmRestarts
 from torch.utils.data import DataLoader
@@ -38,7 +38,7 @@ def main(unused_argv):
   eval_dataloader = DataLoader(evalset, batch_size = FLAGS.batch_size, shuffle = True, num_workers = FLAGS.batch_size)
   model = PredictorSmall(in_channel = 4, out_channel = FLAGS.channels, groups = FLAGS.groups)
   model.to(device(FLAGS.device))
-  mae = L1Loss()
+  mse = MSELoss()
   optimizer = Adam(model.parameters(), lr = FLAGS.lr)
   scheduler = CosineAnnealingWarmRestarts(optimizer, T_0 = 5)
   tb_writer = SummaryWriter(log_dir = join(FLAGS.ckpt, 'summaries'))
@@ -56,7 +56,7 @@ def main(unused_argv):
       if any(isnan(preds)):
         print('there is nan in prediction results!')
         continue
-      loss = mae(potential, preds)
+      loss = mse(potential, preds)
       if any(isnan(loss)):
         print('there is nan in loss!')
         continue
