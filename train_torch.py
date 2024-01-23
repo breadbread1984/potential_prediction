@@ -19,7 +19,7 @@ def add_options():
   flags.DEFINE_string('dataset', default = None, help = 'path to directory containing train and test set')
   flags.DEFINE_string('ckpt', default = 'ckpt', help = 'path to directory for checkpoints')
   flags.DEFINE_integer('channels', default = 768, help = 'output channel')
-  flags.DEFINE_integer('groups', default = 1, help = 'group number for conv')
+  flags.DEFINE_integer('groups', default = 4, help = 'group number for conv')
   flags.DEFINE_integer('batch_size', default = 128, help = 'batch size')
   flags.DEFINE_integer('save_freq', default = 1000, help = 'checkpoint save frequency')
   flags.DEFINE_integer('epochs', default = 600, help = 'epochs to train')
@@ -44,7 +44,10 @@ def main(unused_argv):
   tb_writer = SummaryWriter(log_dir = join(FLAGS.ckpt, 'summaries'))
   global_steps = 0
   if not exists(FLAGS.ckpt): mkdir(FLAGS.ckpt)
-  if exists(join(FLAGS.ckpt, 'model.pth')): model = load(join(FLAGS.ckpt, 'model.pth'))
+  if exists(join(FLAGS.ckpt, 'model.pth')):
+    ckpt = load(join(FLAGS.ckpt, 'model.pth'))
+    model.load_state_dict(ckpt['state_dict'])
+    global_steps = ckpt['global_steps']
   for epoch in range(FLAGS.epochs):
     model.train()
     for x, y in train_dataloader:
@@ -64,7 +67,9 @@ def main(unused_argv):
         print('#%d steps #%d epoch: loss %f' % (global_steps, epoch, loss))
         tb_writer.add_scalar('loss', loss, global_steps)
       if global_steps % FLAGS.save_freq == 0:
-        save(model, join(FLAGS.ckpt, 'model.pth'))
+        ckpt = {'global_steps': global_steps,
+                'state_dict': model.state_dict()}
+        save(ckpt, join(FLAGS.ckpt, 'model.pth'))
     scheduler.step()
     with no_grad():
       model.eval()
