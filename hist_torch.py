@@ -13,7 +13,7 @@ def add_options():
   flags.DEFINE_string('input_dir', default = None, help = 'path to directory containing npy')
 
 def preprocess(data):
-  value = np.maximum(1e-32 * np.ones_like(data), data)
+  value = np.maximum(1e-32 * np.ones_like(data), np.abs(data))
   value = np.where(value >= 0, value, -value)
   return 1 / value
 
