@@ -3,7 +3,7 @@
 from absl import flags, app
 from os import mkdir
 from os.path import exists, join
-from torch import device, save, no_grad
+from torch import device, save, no_grad, any, isnan
 from torch.nn import L1Loss
 from torch.optim import Adam
 from torch.optim.lr_scheduler import CosineAnnealingWarmRestarts
@@ -50,11 +50,11 @@ def main(unused_argv):
     for x, y in train_dataloader:
       rho, potential = x.to(device(FLAGS.device)), y.to(device(FLAGS.device))
       preds = model(rho)
-      if torch.any(torch.isnan(preds)):
+      if any(isnan(preds)):
         print('there is nan in prediction results!')
         continue
       loss = mae(potential, preds)
-      if torch.any(torch.isnan(loss)):
+      if any(isnan(loss)):
         print('there is nan in loss!')
         continue
       loss.backward()
