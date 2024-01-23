@@ -135,14 +135,20 @@ class Extractor(nn.Module):
 class Predictor(nn.Module):
   def __init__(self, **kwargs):
     super(Predictor, self).__init__()
+    self.drop_rate = kwargs.get('drop_rate', 0.1)
+
     self.predictor = Extractor(**kwargs)
-    self.dense1 = nn.Linear(kwargs.get('hidden_channels')[-1], 20)
+    self.dense1 = nn.Linear(kwargs.get('hidden_channels')[-1], 128)
+    self.layernorm = nn.LayerNorm([128,])
+    self.dropout = nn.Dropout(self.drop_rate)
     self.gelu = nn.GELU()
-    self.dense2 = nn.Linear(20, 1)
+    self.dense2 = nn.Linear(128, 1)
     self.sigmoid = nn.Sigmoid()
   def forward(self, inputs):
     results = self.predictor(inputs)
     results = self.dense1(results)
+    results = self.layernorm(results)
+    results = self.dropout(results)
     results = self.gelu(results)
     results = self.dense2(results)
     results = self.sigmoid(results)
