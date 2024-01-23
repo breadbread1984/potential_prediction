@@ -4,7 +4,7 @@ from absl import flags, app
 from os import mkdir
 from os.path import exists, join
 from torch import device, save, load, no_grad, any, isnan
-from torch.nn import MSELoss
+from torch.nn import L1Loss, MSELoss
 from torch.optim import Adam
 from torch.optim.lr_scheduler import CosineAnnealingWarmRestarts
 from torch.utils.data import DataLoader
@@ -23,7 +23,7 @@ def add_options():
   flags.DEFINE_integer('batch_size', default = 128, help = 'batch size')
   flags.DEFINE_integer('save_freq', default = 1000, help = 'checkpoint save frequency')
   flags.DEFINE_integer('epochs', default = 600, help = 'epochs to train')
-  flags.DEFINE_float('lr', default = 0.01, help = 'learning rate')
+  flags.DEFINE_float('lr', default = 0.0001, help = 'learning rate')
   flags.DEFINE_integer('decay_steps', default = 200000, help = 'decay steps')
   flags.DEFINE_list('eval_dists', default = ['1.7',], help = 'bond distances which are used as evaluation dataset')
   flags.DEFINE_integer('workers', default = 4, help = 'number of workers')
@@ -38,6 +38,7 @@ def main(unused_argv):
   eval_dataloader = DataLoader(evalset, batch_size = FLAGS.batch_size, shuffle = True, num_workers = FLAGS.batch_size)
   model = PredictorSmall(in_channel = 4, out_channel = FLAGS.channels, groups = FLAGS.groups)
   model.to(device(FLAGS.device))
+  mae = L1Loss()
   mse = MSELoss()
   optimizer = Adam(model.parameters(), lr = FLAGS.lr)
   scheduler = CosineAnnealingWarmRestarts(optimizer, T_0 = 5)
