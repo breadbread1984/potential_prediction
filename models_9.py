@@ -119,10 +119,15 @@ def UniformerBase(**kwargs):
     return Uniformer(hidden_channels = hidden_channels, depth = depth, **kwargs)
 
 def Trainer(model):
+    drop_rate = kwargs.get('drop_rate', 0.1)
+
     inputs = tf.keras.Input((9,9,9,4))
     results = model(inputs)
-    results = tf.keras.layers.Dense(20, activation = tf.keras.activations.relu)(results) # results.shape = (batch, 20)
-    results = tf.keras.layers.Dense(1)(results) # results.shape = (batch, 1)
+    results = tf.keras.layers.Dense(128)(results) # results.shape = (batch, 128)
+    results = tf.keras.layers.LayerNormalization()(results) # results.shape = (batch, 128)
+    results = tf.keras.layers.Dropout(drop_rate)(results) # results.shape = (batch, 128)
+    results = tf.keras.layers.Identity(activation = tf.keras.activations.gelu)(results) # results.shape = (batch, 128)
+    results = tf.keras.layers.Dense(1, activation = tf.keras.activatinos.sigmoid)(results) # results.shape = (batch, 1)
     return tf.keras.Model(inputs = inputs, outputs = results)
 
 if __name__ == "__main__":
