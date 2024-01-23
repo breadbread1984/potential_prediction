@@ -3,6 +3,7 @@
 from absl import app, flags
 from os import listdir
 from os.path import isdir, join, exists, splitext
+from tqdm import tqdm
 import numpy as np
 import matplotlib.pyplot as plt
 
@@ -21,19 +22,17 @@ def main(unused_argv):
   rho_x = list()
   rho_y = list()
   rho_z = list()
-  for molecule in listdir(FLAGS.input_dir):
-    if not isdir(join(FLAGS.input_dir, molecule)): continue
-    for bond in listdir(join(FLAGS.input_dir, molecule)):
-      stem, ext = splitext(bond)
-      if ext != '.npy': continue
-      npy_path = join(FLAGS.input_dir, molecule, bond)
-      samples = np.load(npy_path)
-      for sample in samples:
-        rho.extend(preprocess(sample[4:4+9**3]).tolist())
-        rho_x.extend(preprocess(sample[4+9**3:4+(9**3)*2]).tolist())
-        rho_y.extend(preprocess(sample[4+(9**3)*2:4+(9**3)*3]).tolist())
-        rho_z.extend(preprocess(sample[4+(9**3)*3:4+(9**3)*4]).tolist())
-      break
+  for sample in tqdm(listdir(join(FLAGS.input_dir, 'train'))):
+    stem, ext = splitext(sample)
+    if ext != '.npz': continue
+    npz_path = join(FLAGS.input_dir, 'train', sample)
+    data = np.load(npz_path)
+    x = data['x'].astype(np.float32)
+    rho.extend(preprocess(x[0].flatten().tolist()))
+    rho_x.extend(preprocess(x[1].flatten().tolist()))
+    rho_y.extend(preprocess(x[2].flatten().tolist()))
+    rho_z.extend(preprocess(x[3].flatten().tolist()))
+
   fig, axs = plt.subplots(2,2)
   axs[0,0].set_title('rho')
   axs[0,0].hist(rho, bins = 30, color = 'skyblue', alpha = 0.8)
