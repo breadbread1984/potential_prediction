@@ -139,18 +139,20 @@ class Predictor(nn.Module):
     self.dense1 = nn.Linear(kwargs.get('hidden_channels')[-1], 20)
     self.gelu = nn.GELU()
     self.dense2 = nn.Linear(20, 1)
+    self.tanh = nn.Tanh()
   def forward(self, inputs):
     results = self.predictor(inputs)
     results = self.dense1(results)
     results = self.gelu(results)
     results = self.dense2(results)
+    results = self.tanh(results)
     return results
 
 class PredictorSmall(nn.Module):
   def __init__(self, **kwargs):
     super(PredictorSmall, self).__init__()
     hidden_channels = kwargs.get('hidden_channels', [128, 512])
-    depth = kwargs.get('depth', [8, 3])
+    depth = kwargs.get('depth', [1, 1])
     self.predictor = Predictor(hidden_channels = hidden_channels, depth = depth, **kwargs)
   def forward(self, inputs):
     return self.predictor(inputs)
