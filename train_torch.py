@@ -64,7 +64,7 @@ def main(unused_argv):
       optimizer.step()
       global_steps += 1
       if global_steps % 100 == 0:
-        print('#%d steps #%d epoch: loss %f' % (global_steps, epoch, loss))
+        print('Step #%d Epoch #%d: loss %f, lr %f' % (global_steps, epoch, loss, scheduler.get_last_lr()))
         tb_writer.add_scalar('loss', loss, global_steps)
       if global_steps % FLAGS.save_freq == 0:
         ckpt = {'global_steps': global_steps,
