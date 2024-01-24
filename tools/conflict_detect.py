@@ -3,7 +3,7 @@
 from absl import app, flags
 from os import listdir
 from os.path import splitext, join, exists
-import tqdm
+from tqdm import tqdm
 import cv2
 
 FLAGS = flags.FLAGS
