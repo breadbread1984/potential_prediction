@@ -19,7 +19,7 @@ def main(unused_argv):
   if exists('index.xml'): index.load('index.xml')
   else:
     print('generating index')
-    index.setIsClassifier(True)
+    index.setIsClassifier(False)
     index.setDefaultK(5)
     features = list()
     labels = list()
