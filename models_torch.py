@@ -117,7 +117,7 @@ class Extractor(nn.Module):
   def forward(self, inputs):
     # inputs.shape = (batch, 4, 9, 9, 9)
     results = self.batchnorm1(inputs)
-    results = self.conv1(inputs) # results.shape = (batch, hidden_channels[0], 9, 9, 9)
+    results = self.conv1(results) # results.shape = (batch, hidden_channels[0], 9, 9, 9)
     results = self.layernorm1(results)
     results = self.dropout1(results)
     # do attention only when the feature shape is small enough
@@ -143,7 +143,6 @@ class Predictor(nn.Module):
     self.dropout = nn.Dropout(self.drop_rate)
     self.gelu = nn.GELU()
     self.dense2 = nn.Linear(128, 1)
-    self.sigmoid = nn.Sigmoid()
   def forward(self, inputs):
     results = self.predictor(inputs)
     results = self.dense1(results)
@@ -151,7 +150,6 @@ class Predictor(nn.Module):
     results = self.dropout(results)
     results = self.gelu(results)
     results = self.dense2(results)
-    results = self.sigmoid(results)
     return results
 
 class PredictorSmall(nn.Module):
