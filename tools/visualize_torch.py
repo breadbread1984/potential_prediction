@@ -5,7 +5,7 @@ from os import listdir
 from os.path import isdir, join, exists, splitext
 import numpy as np
 import torch
-from torch import load
+from torch import load, device
 from models_torch import PredictorSmall
 import matplotlib.pyplot as plt
 
@@ -24,7 +24,7 @@ def main(unused_argv):
   ckpt = load(join(FLAGS.ckpt, 'model.pth'))
   model = PredictorSmall(in_channel = 4, out_channel = FLAGS.channels, groups = FLAGS.groups)
   model.load_state_dict(ckpt['state_dict'])
-  model.eval().cuda()
+  model.eval().to(device('cuda'))
   eval_dists = [int(float(d) * 1000) for d in FLAGS.eval_dists]
   for molecule in listdir(FLAGS.input_dir):
     if not isdir(join(FLAGS.input_dir, molecule)): continue
@@ -51,7 +51,8 @@ def main(unused_argv):
         grad_y = np.reshape(sample[4+(9**3)*2:4+(9**3)*3], (9,9,9))
         grad_z = np.reshape(sample[4+(9**3)*3:4+(9**3)*4], (9,9,9))
         inputs = np.expand_dims(np.stack([density, grad_x, grad_y, grad_z], axis = 0), axis = 0)
-        pred.append(np.log(model(torch.from_numpy(inputs)).detach().cpu().numpy()[0]))
+        inputs = torch.from_numpy(inputs).to(device('cuda'))
+        pred.append(np.log(model(inputs).detach().cpu().numpy()[0]))
         gt.append(sample[3])
       plt.cla()
       plt.plot(selected[:,0], gt, label = 'ground truth')
