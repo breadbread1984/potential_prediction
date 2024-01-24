@@ -4,7 +4,7 @@ from absl import flags, app
 from os import mkdir
 from os.path import exists, join
 from torch import device, save, load, no_grad, any, isnan
-from torch.nn import L1Loss, MSELoss
+from torch.nn import L1Loss
 from torch.optim import Adam
 from torch.optim.lr_scheduler import CosineAnnealingWarmRestarts
 from torch.utils.data import DataLoader
@@ -19,8 +19,8 @@ def add_options():
   flags.DEFINE_string('dataset', default = None, help = 'path to directory containing train and test set')
   flags.DEFINE_string('ckpt', default = 'ckpt', help = 'path to directory for checkpoints')
   flags.DEFINE_integer('channels', default = 768, help = 'output channel')
-  flags.DEFINE_integer('groups', default = 4, help = 'group number for conv')
-  flags.DEFINE_integer('batch_size', default = 128, help = 'batch size')
+  flags.DEFINE_integer('groups', default = 1, help = 'group number for conv')
+  flags.DEFINE_integer('batch_size', default = 100, help = 'batch size')
   flags.DEFINE_integer('save_freq', default = 1000, help = 'checkpoint save frequency')
   flags.DEFINE_integer('epochs', default = 600, help = 'epochs to train')
   flags.DEFINE_float('lr', default = 0.0001, help = 'learning rate')
@@ -39,7 +39,6 @@ def main(unused_argv):
   model = PredictorSmall(in_channel = 4, out_channel = FLAGS.channels, groups = FLAGS.groups)
   model.to(device(FLAGS.device))
   mae = L1Loss()
-  mse = MSELoss()
   optimizer = Adam(model.parameters(), lr = FLAGS.lr)
   scheduler = CosineAnnealingWarmRestarts(optimizer, T_0 = 5)
   tb_writer = SummaryWriter(log_dir = join(FLAGS.ckpt, 'summaries'))
@@ -57,7 +56,7 @@ def main(unused_argv):
       if any(isnan(preds)):
         print('there is nan in prediction results!')
         continue
-      loss = mse(potential, preds)
+      loss = mae(potential, preds)
       if any(isnan(loss)):
         print('there is nan in loss!')
         continue
