@@ -16,7 +16,7 @@ def add_options():
 
 def main(unused_argv):
   index = IndexFlatL2(64)
-  if exists('samples.index'): read_index(index, 'samples.index')
+  if exists('samples.index'): index = read_index('samples.index')
   else:
     print('generating index')
     features = list()
