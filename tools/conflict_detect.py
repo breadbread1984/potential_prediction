@@ -31,6 +31,7 @@ def main(unused_argv):
     labels = np.stack(labels, axis = 0)
     index.add(features)
     write_index(index, 'samples.index')
+    np.save('labels.npy', labels)
   print('searching for conflicts')
   for f in tqdm(listdir(FLAGS.input_dir)):
     stem, ext = splitext(f)
