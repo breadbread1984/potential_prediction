@@ -15,7 +15,7 @@ def add_options():
   flags.DEFINE_float('potential', default = 0.2, help = 'potential distance threshold')
 
 def main(unused_argv):
-  index = IndexFlatL2(64)
+  index = IndexFlatL2(9**3*4)
   if exists('samples.index'): index = read_index('samples.index')
   else:
     print('generating index')
