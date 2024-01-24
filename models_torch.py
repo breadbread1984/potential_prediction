@@ -130,7 +130,7 @@ class Predictor(nn.Module):
     self.drop_rate = kwargs.get('drop_rate', 0.1)
 
     self.predictor = Extractor(**kwargs)
-    self.dense1 = nn.Linear(kwargs.get('hidden_channels')[-1], 128)
+    self.dense1 = nn.Linear(kwargs.get('hidden_channels'), 128)
     self.layernorm = nn.LayerNorm([128,])
     self.dropout = nn.Dropout(self.drop_rate)
     self.gelu = nn.GELU()
