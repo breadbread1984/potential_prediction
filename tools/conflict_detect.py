@@ -4,6 +4,7 @@ from absl import app, flags
 from os import listdir
 from os.path import splitext, join, exists
 from tqdm import tqdm
+import numpy as np
 import cv2
 
 FLAGS = flags.FLAGS
