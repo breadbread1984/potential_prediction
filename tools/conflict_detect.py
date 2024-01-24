@@ -2,7 +2,7 @@
 
 from absl import app, flags
 from os import listdir
-from os.path import splitext, join, exits
+from os.path import splitext, join, exists
 import tqdm
 import cv2
 
@@ -15,7 +15,7 @@ def add_options():
 
 def main(unused_argv):
   index = cv2.ml.KNearest_create()
-  if exist('index.xml'): index.load('index.xml')
+  if exists('index.xml'): index.load('index.xml')
   else:
     print('generating index')
     index.setIsClassifier(True)
