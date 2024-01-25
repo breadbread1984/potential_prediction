@@ -45,36 +45,33 @@ class ABlock(nn.Module):
     self.qkv_bias = kwargs.get('qkv_bias', False)
     self.groups = kwargs.get('groups', 1)
 
-    self.conv1 = nn.Conv3d(self.channel, self.channel, kernel_size = (3,3,3), padding = 'same', groups = self.groups)
-    self.conv2 = nn.Conv3d(self.channel, self.channel * self.mlp_ratio, kernel_size = (1,1,1), padding = 'same', groups = self.groups)
-    self.conv3 = nn.Conv3d(self.channel * self.mlp_ratio, self.channel, kernel_size = (1,1,1), padding = 'same', groups = self.groups)
+    self.conv1 = nn.Conv3d(self.channel, self.channel * self.mlp_ratio, kernel_size = (1,1,1), padding = 'same', groups = self.groups)
+    self.conv2 = nn.Conv3d(self.channel * self.mlp_ratio, self.channel, kernel_size = (1,1,1), padding = 'same', groups = self.groups)
     self.gelu = nn.GELU()
     self.layernorm1 = nn.LayerNorm([self.channel, self.input_size, self.input_size, self.input_size])
     self.layernorm2 = nn.LayerNorm([self.channel, self.input_size, self.input_size, self.input_size])
+    self.dropout0 = nn.Dropout(self.drop_rate)
     self.dropout1 = nn.Dropout(self.drop_rate)
     self.dropout2 = nn.Dropout(self.drop_rate)
     self.atten = Attention(**kwargs)
   def forward(self, inputs):
     # inputs.shape = (batch, c, t, h, w)
-    # positional embedding
-    skip = inputs
-    pos_embed = self.conv1(inputs) # pos_embed.shape = (batch, channel, t, h, w)
-    results = skip + pos_embed
     # attention
-    skip = results
-    results = self.layernorm1(results)
+    skip = inputs
+    results = self.layernorm1(inputs)
     b, c, t, h, w = results.shape
     results = torch.reshape(results, (b, c, t * h * w)) # results.shape = (batch, channel, t * h * w)
     results = self.atten(results) # results.shape = (batch, channel, t * h * w)
     results = torch.reshape(results, (b, c, t, h, w)) # results.shape = (batch, channel, t, h, w)
+    results = self.dropout0(results)
     results = skip + results
     # mlp
     skip = results
     results = self.layernorm2(results)
-    results = self.conv2(results) # results.shape = (batch, channel * mlp_ratio, t, h, w)
+    results = self.conv1(results) # results.shape = (batch, channel * mlp_ratio, t, h, w)
     results = self.gelu(results)
     results = self.dropout1(results)
-    results = self.conv3(results) # results.shape = (batch, channel, t, h, w)
+    results = self.conv2(results) # results.shape = (batch, channel, t, h, w)
     results = self.dropout2(results)
     results = skip + results
     return results
@@ -95,9 +92,8 @@ class Extractor(nn.Module):
   def __init__(self, **kwargs):
     super(Extractor, self).__init__()
     self.in_channel = kwargs.get('in_channel', 3)
-    self.out_channel = kwargs.get('out_channel', None)
-    self.hidden_channels = kwargs.get('hidden_channels', [128, 512])
-    self.depth = kwargs.get('depth', [8, 3])
+    self.hidden_channels = kwargs.get('hidden_channels', 512)
+    self.depth = kwargs.get('depth', 12)
     self.mlp_ratio = kwargs.get('mlp_ratio', 4.)
     self.drop_rate = kwargs.get('drop_rate', 0.1)
     self.qkv_bias = kwargs.get('qkv_bias', False)
@@ -105,15 +101,14 @@ class Extractor(nn.Module):
     self.groups = kwargs.get('groups', 1)
     
     self.batchnorm1 = nn.BatchNorm3d(4)
-    self.batchnorm2 = nn.BatchNorm3d(self.hidden_channels[1])
-    self.conv1 = nn.Conv3d(4, self.hidden_channels[0], kernel_size = (3,3,3), padding = 'same')
-    self.conv2 = Conv3dSame(self.hidden_channels[0], self.hidden_channels[1], kernel_size = (3,3,3), stride = 3, groups = self.groups)
-    self.conv3 = Conv3dSame(self.hidden_channels[1], self.hidden_channels[1], kernel_size = (3,3,3), stride = 3, groups = self.groups)
-    self.layernorm1 = nn.LayerNorm([self.hidden_channels[0], 9, 9, 9])
-    self.layernorm2 = nn.LayerNorm([self.hidden_channels[1], 3, 3, 3])
+    self.batchnorm2 = nn.BatchNorm3d(self.hidden_channels)
+    self.conv1 = nn.Conv3d(4, self.hidden_channels, kernel_size = (3,3,3), padding = 'same')
+    self.conv2 = Conv3dSame(self.hidden_channels, self.hidden_channels, kernel_size = (3,3,3), stride = 3, groups = self.groups)
+    self.conv3 = Conv3dSame(self.hidden_channels, self.hidden_channels, kernel_size = (3,3,3), stride = 3, groups = self.groups)
+    self.layernorm1 = nn.LayerNorm([self.hidden_channels, 9, 9, 9])
+    self.layernorm2 = nn.LayerNorm([self.hidden_channels, 9, 9, 9])
     self.dropout1 = nn.Dropout(self.drop_rate)
-    self.block1 = nn.ModuleList([ABlock(input_size = 9, channel = self.hidden_channels[0], qkv_bias = self.qkv_bias, num_heads = self.num_heads, **kwargs) for i in range(self.depth[0])])
-    self.block2 = nn.ModuleList([ABlock(input_size = 3, channel = self.hidden_channels[1], qkv_bias = self.qkv_bias, num_heads = self.num_heads, **kwargs) for i in range(self.depth[1])])
+    self.blocks = nn.ModuleList([ABlock(input_size = 9, channel = self.hidden_channels, qkv_bias = self.qkv_bias, num_heads = self.num_heads, **kwargs) for i in range(self.depth)])
   def forward(self, inputs):
     # inputs.shape = (batch, 4, 9, 9, 9)
     results = self.batchnorm1(inputs)
@@ -121,14 +116,11 @@ class Extractor(nn.Module):
     results = self.layernorm1(results)
     results = self.dropout1(results)
     # do attention only when the feature shape is small enough
-    for i in range(self.depth[0]):
-      results = self.block1[i](results)
-    results = self.conv2(results) # results.shape = (batch, hidden_channels[1], 3, 3, 3)
+    for i in range(self.depth):
+      results = self.blocks[i](results)
     results = self.layernorm2(results)
-    for i in range(self.depth[1]):
-      results = self.block2[i](results)
+    results = self.conv2(results) # results.shape = (batch, hidden_channels[1], 3, 3, 3)
     results = self.conv3(results) # results.shape = (batch, hidden_channels[1], 1, 1, 1)
-    results = self.batchnorm2(results)
     results = torch.squeeze(results, (2,3,4)) # results.shape = (batch, hidden_channels[1])
     return results
 
@@ -138,7 +130,7 @@ class Predictor(nn.Module):
     self.drop_rate = kwargs.get('drop_rate', 0.1)
 
     self.predictor = Extractor(**kwargs)
-    self.dense1 = nn.Linear(kwargs.get('hidden_channels')[-1], 128)
+    self.dense1 = nn.Linear(kwargs.get('hidden_channels'), 128)
     self.layernorm = nn.LayerNorm([128,])
     self.dropout = nn.Dropout(self.drop_rate)
     self.gelu = nn.GELU()
@@ -155,8 +147,8 @@ class Predictor(nn.Module):
 class PredictorSmall(nn.Module):
   def __init__(self, **kwargs):
     super(PredictorSmall, self).__init__()
-    hidden_channels = kwargs.get('hidden_channels', [128, 512])
-    depth = kwargs.get('depth', [8, 3])
+    hidden_channels = kwargs.get('hidden_channels', 512)
+    depth = kwargs.get('depth', 12)
     self.predictor = Predictor(hidden_channels = hidden_channels, depth = depth, **kwargs)
   def forward(self, inputs):
     return self.predictor(inputs)
@@ -164,8 +156,8 @@ class PredictorSmall(nn.Module):
 class PredictorBase(nn.Module):
   def __init__(self, **kwargs):
     super(PredictorBase, self).__init__()
-    hidden_channels = kwargs.get('hidden_channels', [128, 512])
-    depth = kwargs.get('depth', [20, 7])
+    hidden_channels = kwargs.get('hidden_channels', 512)
+    depth = kwargs.get('depth', 24)
     self.predictor = Predictor(hidden_channels = hidden_channels, depth = depth, **kwargs)
   def forward(self, inputs):
     return self.predictor(inputs)
@@ -179,7 +171,7 @@ if __name__ == "__main__":
   inputs = torch.randn(2, 768, 9, 9, 9)
   results = ablock(inputs)
   print(results.shape)
-  predictor = PredictorSmall(in_channel = 4, out_channel = 768, groups = 1)
+  predictor = PredictorSmall(in_channel = 4, groups = 1)
   inputs = torch.randn(2, 4, 9, 9, 9)
   results = predictor(inputs)
   print(results.shape)
