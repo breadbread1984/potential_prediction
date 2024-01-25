@@ -38,7 +38,7 @@ def ABlock(**kwargs):
     inputs = tf.keras.Input((None, None, None, channel))
     # attention
     skip = inputs
-    results = tf.keras.layers.LayerNormalization()(results) # results.shape = (batch, T, H, W, channel)
+    results = tf.keras.layers.LayerNormalization()(inputs) # results.shape = (batch, T, H, W, channel)
     shape = tf.keras.layers.Lambda(lambda x: tf.shape(x))(results)
     results = tf.keras.layers.Lambda(lambda x: tf.reshape(x, (tf.shape(x)[0],
                                                               tf.shape(x)[1] * tf.shape(x)[2] * tf.shape(x)[3],
