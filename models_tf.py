@@ -84,6 +84,7 @@ def Predictor(**kwargs):
 
     inputs = tf.keras.Input((None,None,None,in_channel))
     results = Extractor(**kwargs)(inputs)
+    results = tf.keras.layers.Lambda(lambda x: x[:,0,0,0,:])(results)
     results = tf.keras.layers.Dense(1)(results)
     return tf.keras.Model(inputs = inputs, outputs = results)
 
