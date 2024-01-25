@@ -3,7 +3,6 @@
 import math
 import torch
 from torch import nn
-import torch.nn.functional as F
 
 class Attention(nn.Module):
   def __init__(self, **kwargs):
@@ -75,19 +74,7 @@ class ABlock(nn.Module):
     results = self.dropout2(results)
     results = skip + results
     return results
-'''
-class Conv3dSame(nn.Conv3d):
-  def calc_same_pad(self, i: int, k: int, s: int, d: int) -> int:
-    return max((math.ceil(i / s) - 1) * s + (k - 1) * d + 1 - i, 0)
-  def forward(self, x: torch.Tensor) -> torch.Tensor:
-    it, ih, iw = x.size()[-3:]
-    pad_t = self.calc_same_pad(i = it, k = self.kernel_size[0], s = self.stride[0], d = self.dilation[0])
-    pad_h = self.calc_same_pad(i = ih, k = self.kernel_size[1], s = self.stride[1], d = self.dilation[1])
-    pad_w = self.calc_same_pad(i = iw, k = self.kernel_size[2], s = self.stride[2], d = self.dilation[2])
-    if pad_t > 0 or pad_h > 0 or pad_w > 0:
-      x = F.pad(x, [pad_w // 2, pad_w - pad_w // 2, pad_h // 2, pad_h - pad_h // 2, pad_t // 2, pad_t - pad_t // 2])
-    return F.conv3d(x, self.weight, self.bias, self.stride, self.padding, self.dilation, self.groups)
-'''
+
 class Extractor(nn.Module):
   def __init__(self, **kwargs):
     super(Extractor, self).__init__()
@@ -126,8 +113,6 @@ class Extractor(nn.Module):
 class Predictor(nn.Module):
   def __init__(self, **kwargs):
     super(Predictor, self).__init__()
-    self.drop_rate = kwargs.get('drop_rate', 0.1)
-
     self.predictor = Extractor(**kwargs)
     self.dense1 = nn.Linear(kwargs.get('hidden_channels'), 1)
   def forward(self, inputs):

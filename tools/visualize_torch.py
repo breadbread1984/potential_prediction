@@ -15,14 +15,13 @@ def add_options():
   flags.DEFINE_string('input_dir', default = None, help = 'path to input directory')
   flags.DEFINE_string('ckpt', default = 'ckpt', help = 'path to directory for checkpoints')
   flags.DEFINE_list('eval_dists', default = ['1.7',], help = 'bond distances which are used as evaluation dataset')
-  flags.DEFINE_integer('channels', default = 768, help = 'output channels')
-  flags.DEFINE_integer('groups', default = 4, help = 'group number for conv')
+  flags.DEFINE_integer('groups', default = 1, help = 'group number for conv')
 
 def main(unused_argv):
   if not exists(FLAGS.ckpt):
     raise Exception('checkpoint not found!')
   ckpt = load(join(FLAGS.ckpt, 'model.pth'))
-  model = PredictorSmall(in_channel = 4, out_channel = FLAGS.channels, groups = FLAGS.groups)
+  model = PredictorSmall(in_channel = 4, groups = FLAGS.groups)
   model.load_state_dict(ckpt['state_dict'])
   model.eval().to(device('cuda'))
   eval_dists = [int(float(d) * 1000) for d in FLAGS.eval_dists]
