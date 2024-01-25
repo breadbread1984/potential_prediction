@@ -44,7 +44,7 @@ def main(unused_argv):
     close_indices = indices[0][np.logical_and(0 < dists[0], dists[0] < FLAGS.dist)]
     close_labels = labels[close_indices]
     conflict_indices = close_labels[np.abs(close_labels - data['y']) > FLAGS.potential]
-    output.write(' '.join([str(idx) for idx in conflict_indices]))
+    output.write(' '.join([str(idx) for idx in conflict_indices]) + '\n')
   output.close()
 
 if __name__ == "__main__":
