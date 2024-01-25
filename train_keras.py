@@ -42,7 +42,7 @@ def main(unused_argv):
       loss = [tf.keras.losses.MeanAbsoluteError()]
       metrics = [tf.keras.metrics.MeanAbsoluteError()]
   else:
-    predictor = PredictorSmall(in_channel = 4, out_channel = FLAGS.channels, groups = FLAGS.groups)
+    predictor = PredictorSmall(in_channel = 4, groups = FLAGS.groups)
     optimizer = tf.keras.optimizers.Adam(tf.keras.optimizers.schedules.CosineDecayRestarts(FLAGS.lr, first_decay_steps = FLAGS.decay_steps))
     loss = [tf.keras.losses.MeanAbsoluteError()]
     metrics = [tf.keras.metrics.MeanAbsoluteError()]
