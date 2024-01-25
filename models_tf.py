@@ -33,27 +33,19 @@ def ABlock(**kwargs):
     drop_rate = kwargs.get('drop_rate', 0.1)
     num_heads = kwargs.get('num_heads', 8)
     qkv_bias = kwargs.get('qkv_bias', False)
-    drop_path_rate = kwargs.get('drop_path_rate', 0.)
     groups = kwargs.get('groups', 1)
     # network
     inputs = tf.keras.Input((None, None, None, channel))
-    # positional embedding
-    skip = inputs
-    pos_embed = tf.keras.layers.Conv3D(channel, kernel_size = (3,3,3), padding = 'same', groups = groups)(inputs)
-    results = tf.keras.layers.Add()([skip, pos_embed])
     # attention
-    skip = results
+    skip = inputs
     results = tf.keras.layers.LayerNormalization()(results) # results.shape = (batch, T, H, W, channel)
     shape = tf.keras.layers.Lambda(lambda x: tf.shape(x))(results)
     results = tf.keras.layers.Lambda(lambda x: tf.reshape(x, (tf.shape(x)[0],
                                                               tf.shape(x)[1] * tf.shape(x)[2] * tf.shape(x)[3],
                                                               tf.shape(x)[4])))(results) # results.shape = (batch, T * H * W, channel)
     results = Attention(**kwargs)(results)
-    if drop_path_rate > 0:
-        results = KCV.layers.DropPath(rate = drop_path_rate)(results)
-    else:
-        results = tf.keras.layers.Identity()(results)
     results = tf.keras.layers.Lambda(lambda x: tf.reshape(x[0], x[1]), output_shape = (None, None, None, channel))([results, shape]) # results.shape = (batch, T, H, W, channel)
+    results = tf.keras.layers.Dropout(drop_rate)(results)
     results = tf.keras.layers.Add()([skip, results])
     # mlp
     skip = results
@@ -62,78 +54,56 @@ def ABlock(**kwargs):
     results = tf.keras.layers.Dropout(rate = drop_rate)(results)
     results = tf.keras.layers.Conv3D(channel, kernel_size = (1,1,1), padding = 'same', groups = groups)(results)
     results = tf.keras.layers.Dropout(rate = drop_rate)(results)
-    if drop_path_rate > 0:
-        results = KCV.layers.DropPath(rate = drop_path_rate)(results)
-    else:
-        results = tf.keras.layers.Identity()(results)
     results = tf.keras.layers.Add()([skip, results])
     return tf.keras.Model(inputs = inputs, outputs = results, name = kwargs.get('name', None))
 
-def Uniformer(**kwargs):
+def Extractor(**kwargs):
     # args
     in_channel = kwargs.get('in_channel', 3)
-    out_channel = kwargs.get('out_channel', None)
-    hidden_channels = kwargs.get('hidden_channels', [128,512])
-    depth = kwargs.get('depth', [8,3])
+    hidden_channels = kwargs.get('hidden_channels', 512)
+    depth = kwargs.get('depth', 12)
     mlp_ratio = kwargs.get('mlp_ratio', 4.)
     drop_rate = kwargs.get('drop_rate', 0.1)
-    global_drop_path_rate = kwargs.get('global_drop_path_rate', 0.)
     qkv_bias = kwargs.get('qkv_bias', False)
     num_heads = kwargs.get('num_heads', 8)
     groups = kwargs.get('groups', 1)
-    assert len(hidden_channels) == len(depth)
-    dpr = [x.item() for x in np.linspace(0, global_drop_path_rate, sum(depth))]
     # network
     inputs = tf.keras.Input((None, None, None, in_channel)) # inputs.shape = (batch, t, h, w, in_channel)
-    results = tf.keras.layers.Conv3D(hidden_channels[0], kernel_size = (3, 3, 3), padding = 'same')(inputs) # results.shape = (batch, t, h, w, hidden_channels[0])
-    results = tf.keras.layers.LayerNormalization()(results)
+    results = tf.keras.layers.LayerNormalization()(inputs)
+    results = tf.keras.layers.Conv3D(hidden_channels, kernel_size = (1, 1, 1), padding = 'same', activation = tf.keras.activations.gelu)(inputs) # results.shape = (batch, t, h, w, hidden_channels[0])
     results = tf.keras.layers.Dropout(rate = drop_rate)(results)
-    # do attention only when the feature shape is small enough
-    # block 3
-    for i in range(depth[0]):
-        results = ABlock(channel = hidden_channels[0], drop_path_rate = dpr[i], qkv_bias = qkv_bias, num_heads = num_heads, **kwargs)(results) # results.shape = (batch, 9, 9, 9, hidden_channels[0])
-    results = tf.keras.layers.Conv3D(hidden_channels[1], kernel_size = (3, 3, 3), strides = (3, 3, 3), padding = 'same', groups = groups)(results) # results.shape = (batch, 3, 3, 3, hidden_channels[1])
+    # blocks
+    for i in range(depth):
+        results = ABlock(channel = hidden_channels, qkv_bias = qkv_bias, num_heads = num_heads, **kwargs)(results) # results.shape = (batch, 9, 9, 9, hidden_channels)
     results = tf.keras.layers.LayerNormalization()(results)
-    # block 4
-    for i in range(depth[1]):
-        results = ABlock(channel = hidden_channels[1], drop_path_rate = dpr[i], qkv_bias = qkv_bias, num_heads = num_heads, **kwargs)(results) # results.shape = (batch, 3, 3, 3, hidden_channels[1])
-    results = tf.keras.layers.Conv3D(hidden_channels[1], kernel_size = (3, 3, 3), strides = (3, 3, 3), padding = 'same', groups = groups)(results) # results.shape = (batch, 1, 1, 1, hidden_channels[1])
-    results = tf.keras.layers.BatchNormalization()(results) # results.shape = (batch, 1, 1, 1, hidden_channels[1])
-    if out_channel is not None:
-        results = tf.keras.layers.Dense(out_channel, activation = tf.keras.activations.tanh)(results) # results.shape = (batch, 1, 1, 1, out_channel)
-    results = tf.keras.layers.Lambda(lambda x: tf.reduce_mean(x, axis = (1, 2, 3)))(results) # results.shape = (batch, out_channel)
+    results = tf.keras.layers.Conv3D(hidden_channels, kernel_size = (1, 1, 1), padding = 'same', activation = tf.keras.activations.tanh, groups = groups)(results) # results.shape = (batch, 1, 1, 1, hidden_channels[1])
     return tf.keras.Model(inputs = inputs, outputs = results, name = kwargs.get('name', None))
 
-def UniformerSmall(**kwargs):
-    # args
-    hidden_channels = kwargs.get('hidden_channels', [128,512])
-    depth = kwargs.get('depth', [8,3])
-    # network
-    return Uniformer(hidden_channels = hidden_channels, depth = depth, **kwargs)
+def Predictor(**kwargs):
+    in_channel = kwargs.get('in_channel', 3)
 
-def UniformerBase(**kwargs):
-    # args
-    hidden_channels = kwargs.get('hidden_channels', [128,512])
-    depth = kwargs.get('depth', [20,7])
-    # network
-    return Uniformer(hidden_channels = hidden_channels, depth = depth, **kwargs)
-
-def Trainer(model):
-    drop_rate = kwargs.get('drop_rate', 0.1)
-
-    inputs = tf.keras.Input((9,9,9,4))
-    results = model(inputs)
-    results = tf.keras.layers.Dense(128)(results) # results.shape = (batch, 128)
-    results = tf.keras.layers.LayerNormalization()(results) # results.shape = (batch, 128)
-    results = tf.keras.layers.Dropout(drop_rate)(results) # results.shape = (batch, 128)
-    results = tf.keras.layers.Identity(activation = tf.keras.activations.gelu)(results) # results.shape = (batch, 128)
-    results = tf.keras.layers.Dense(1, activation = tf.keras.activatinos.sigmoid)(results) # results.shape = (batch, 1)
+    inputs = tf.keras.Input((None,None,None,in_channel))
+    results = Extractor(**kwargs)(inputs)
+    results = tf.keras.layers.Dense(1)(results)
     return tf.keras.Model(inputs = inputs, outputs = results)
+
+def PredictorSmall(**kwargs):
+    # args
+    hidden_channels = kwargs.get('hidden_channels', 512)
+    depth = kwargs.get('depth', 12)
+    # network
+    return Predictor(hidden_channels = hidden_channels, depth = depth, **kwargs)
+
+def PredictorBase(**kwargs):
+    # args
+    hidden_channels = kwargs.get('hidden_channels', 512)
+    depth = kwargs.get('depth', 24)
+    # network
+    return Predictor(hidden_channels = hidden_channels, depth = depth, **kwargs)
 
 if __name__ == "__main__":
     inputs = np.random.normal(size = (1,9,9,9,4))
-    uniformer = UniformerSmall(in_channel = 4, out_channel = 768, groups = 1)
-    trainer = Trainer(uniformer)
-    trainer.save('uniformer.keras')
+    uniformer = PredictorSmall(in_channel = 4, groups = 1)
+    trainer.save('predictor.keras')
     outputs = trainer(inputs)
     print(outputs.shape)

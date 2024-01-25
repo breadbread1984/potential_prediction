@@ -4,7 +4,7 @@ from os import listdir, mkdir
 from os.path import exists, join, splitext
 from absl import app, flags
 import tensorflow as tf
-from models_9 import Trainer, UniformerSmall
+from models_tf import Trainer, UniformerSmall
 from create_dataset import Dataset
 
 FLAGS = flags.FLAGS
