@@ -2,7 +2,6 @@
 
 import numpy as np
 import tensorflow as tf
-import keras_cv as KCV
 
 def Attention(**kwargs):
     # args
