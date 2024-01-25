@@ -102,8 +102,8 @@ class Extractor(nn.Module):
     
     self.gelu = nn.GELU()
     self.tanh = nn.Tanh()
-    self.conv1 = nn.Conv3d(4, self.hidden_channels, kernel_size = (3,3,3), padding = 'same')
-    self.conv2 = nn.Conv3d(self.hidden_channels, self.hidden_channels, kernel_size = (3,3,3), padding = 'same', groups = self.groups)
+    self.conv1 = nn.Conv3d(4, self.hidden_channels, kernel_size = (1,1,1), padding = 'same')
+    self.conv2 = nn.Conv3d(self.hidden_channels, self.hidden_channels, kernel_size = (1,1,1), padding = 'same', groups = self.groups)
     self.layernorm1 = nn.LayerNorm([4, 9, 9, 9])
     self.layernorm2 = nn.LayerNorm([self.hidden_channels, 9, 9, 9])
     self.dropout1 = nn.Dropout(self.drop_rate)
