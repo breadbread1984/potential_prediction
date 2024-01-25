@@ -120,7 +120,7 @@ class Extractor(nn.Module):
     results = self.layernorm2(results)
     results = self.conv2(results) # results.shape = (batch, hidden_channels, 9, 9, 9)
     results = self.tanh(results) # results.shape = (batch, hidden_channels, 9, 9, 9)
-    results = torch.mean(results, dim = (2,3,4)) # results.shape = (batch, hidden_channels)
+    #results = torch.mean(results, dim = (2,3,4)) # results.shape = (batch, hidden_channels)
     return results
 
 class Predictor(nn.Module):
@@ -131,8 +131,8 @@ class Predictor(nn.Module):
     self.predictor = Extractor(**kwargs)
     self.dense1 = nn.Linear(kwargs.get('hidden_channels'), 1)
   def forward(self, inputs):
-    results = self.predictor(inputs)
-    results = self.dense1(results)
+      results = self.predictor(inputs)
+    results = self.dense1(results[:,:,0,0,0])
     return results
 
 class PredictorSmall(nn.Module):
