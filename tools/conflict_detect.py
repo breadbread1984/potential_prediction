@@ -35,7 +35,7 @@ def main(unused_argv):
     write_index(index, 'samples.index')
     np.save('labels.npy', labels)
   print('searching for conflicts')
-  f = open('conflicts.txt', 'w')
+  output = open('conflicts.txt', 'w')
   for f in tqdm(listdir(join(FLAGS.input_dir, 'train'))):
     stem, ext = splitext(f)
     if ext != '.npz': continue
@@ -44,8 +44,8 @@ def main(unused_argv):
     close_indices = indices[0][np.logical_and(0 < dists[0], dists[0] < FLAGS.dist)]
     close_labels = labels[close_indices]
     conflict_indices = close_labels[np.abs(close_labels - data['y']) > FLAGS.potential]
-    f.write(' '.join([str(idx) for idx in conflict_indices]))
-  f.close()
+    output.write(' '.join([str(idx) for idx in conflict_indices]))
+  output.close()
 
 if __name__ == "__main__":
   add_options()
