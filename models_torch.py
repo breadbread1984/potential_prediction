@@ -131,7 +131,7 @@ class Predictor(nn.Module):
     self.predictor = Extractor(**kwargs)
     self.dense1 = nn.Linear(kwargs.get('hidden_channels'), 1)
   def forward(self, inputs):
-      results = self.predictor(inputs)
+    results = self.predictor(inputs)
     results = self.dense1(results[:,:,0,0,0])
     return results
 
