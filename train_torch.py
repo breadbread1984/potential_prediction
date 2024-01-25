@@ -30,6 +30,7 @@ def add_options():
   flags.DEFINE_enum('device', default = 'cuda', enum_values = ['cpu', 'cuda'], help = 'device')
 
 def main(unused_argv):
+  torch.autograd.set_detect_anomaly(True)
   eval_dists = [int(float(d) * 1000) for d in FLAGS.eval_dists]
   trainset = RhoDataset(join(FLAGS.dataset, 'train'))
   evalset = RhoDataset(join(FLAGS.dataset, 'val'))
