@@ -4,7 +4,7 @@ from os import listdir
 from os.path import exists, join, splitext
 from absl import app, flags
 import tensorflow as tf
-from models_tf import Trainer, UniformerSmall
+from models_tf import PredictorSmall
 from create_dataset import Dataset
 
 FLAGS = flags.FLAGS
@@ -38,19 +38,17 @@ def main(unused_argv):
   if FLAGS.dist:
     strategy = tf.distribute.MirroredStrategy()
     with strategy.scope():
-      uniformer = UniformerSmall(in_channel = 4, out_channel = FLAGS.channels, groups = FLAGS.groups)
-      trainer = Trainer(uniformer)
+      predictor = PredictorSmall(in_channel = 4, out_channel = FLAGS.channels, groups = FLAGS.groups)
       optimizer = tf.keras.optimizers.Adam(tf.keras.optimizers.schedules.CosineDecayRestarts(FLAGS.lr, first_decay_steps = FLAGS.decay_steps))
       loss = [tf.keras.losses.MeanAbsoluteError()]
       metrics = [tf.keras.metrics.MeanAbsoluteError()]
   else:
-    uniformer = UniformerSmall(in_channel = 4, out_channel = FLAGS.channels, groups = FLAGS.groups)
-    trainer = Trainer(uniformer)
+    predictor = PredictorSmall(in_channel = 4, out_channel = FLAGS.channels, groups = FLAGS.groups)
     optimizer = tf.keras.optimizers.Adam(tf.keras.optimizers.schedules.CosineDecayRestarts(FLAGS.lr, first_decay_steps = FLAGS.decay_steps))
     loss = [tf.keras.losses.MeanAbsoluteError()]
     metrics = [tf.keras.metrics.MeanAbsoluteError()]
-  if exists(FLAGS.ckpt): trainer.load_weights(join(FLAGS.ckpt, 'ckpt', 'variables', 'variables'))
-  trainer.compile(optimizer = optimizer, loss = loss, metrics = metrics)
+  if exists(FLAGS.ckpt): predictor.load_weights(join(FLAGS.ckpt, 'ckpt', 'variables', 'variables'))
+  predictor.compile(optimizer = optimizer, loss = loss, metrics = metrics)
   train_list, val_list = search_datasets(FLAGS.dataset)
   if len(train_list) == 0 or len(val_list) == 0:
     raise Exception('no tfrecord files found!')
@@ -61,7 +59,7 @@ def main(unused_argv):
     tf.keras.callbacks.TensorBoard(log_dir = FLAGS.ckpt),
     tf.keras.callbacks.ModelCheckpoint(filepath = join(FLAGS.ckpt, 'ckpt'), save_freq = FLAGS.save_freq),
   ]
-  trainer.fit(trainset, epochs = FLAGS.epochs, validation_data = valset, callbacks = callbacks)
+  predictor.fit(trainset, epochs = FLAGS.epochs, validation_data = valset, callbacks = callbacks)
 
 if __name__ == "__main__":
   add_options()
