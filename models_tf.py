@@ -103,7 +103,7 @@ def PredictorBase(**kwargs):
 
 if __name__ == "__main__":
     inputs = np.random.normal(size = (1,9,9,9,4))
-    uniformer = PredictorSmall(in_channel = 4, groups = 1)
-    trainer.save('predictor.keras')
-    outputs = trainer(inputs)
+    predictor = PredictorSmall(in_channel = 4, groups = 1)
+    predictor.save('predictor.keras')
+    outputs = predictor(inputs)
     print(outputs.shape)
