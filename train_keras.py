@@ -12,7 +12,6 @@ FLAGS = flags.FLAGS
 def add_options():
   flags.DEFINE_string('dataset', default = None, help = 'path to directory containing train and test set')
   flags.DEFINE_string('ckpt', default = 'ckpt', help = 'path to directory for checkpoints')
-  flags.DEFINE_integer('channels', default = 512, help = 'output channel')
   flags.DEFINE_integer('groups', default = 1, help = 'group number for conv')
   flags.DEFINE_integer('batch_size', default = 128, help = 'batch size')
   flags.DEFINE_integer('save_freq', default = 10000, help = 'checkpoint save frequency')
@@ -38,12 +37,12 @@ def main(unused_argv):
   if FLAGS.dist:
     strategy = tf.distribute.MirroredStrategy()
     with strategy.scope():
-      predictor = PredictorSmall(in_channel = 4, out_channel = FLAGS.channels, groups = FLAGS.groups)
+      predictor = PredictorSmall(in_channel = 4, groups = FLAGS.groups)
       optimizer = tf.keras.optimizers.Adam(tf.keras.optimizers.schedules.CosineDecayRestarts(FLAGS.lr, first_decay_steps = FLAGS.decay_steps))
       loss = [tf.keras.losses.MeanAbsoluteError()]
       metrics = [tf.keras.metrics.MeanAbsoluteError()]
   else:
-    predictor = PredictorSmall(in_channel = 4, out_channel = FLAGS.channels, groups = FLAGS.groups)
+    predictor = PredictorSmall(in_channel = 4, groups = FLAGS.groups)
     optimizer = tf.keras.optimizers.Adam(tf.keras.optimizers.schedules.CosineDecayRestarts(FLAGS.lr, first_decay_steps = FLAGS.decay_steps))
     loss = [tf.keras.losses.MeanAbsoluteError()]
     metrics = [tf.keras.metrics.MeanAbsoluteError()]
