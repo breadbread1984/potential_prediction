@@ -51,6 +51,7 @@ def main(unused_argv):
   for epoch in range(FLAGS.epochs):
     model.train()
     for x, y in train_dataloader:
+      optimizer.zero_grad()
       rho, potential = x.to(device(FLAGS.device)), y.to(device(FLAGS.device))
       preds = model(rho)
       if any(isnan(preds)):
