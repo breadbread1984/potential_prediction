@@ -11,12 +11,14 @@ FLAGS = flags.FLAGS
 
 def add_options():
   flags.DEFINE_string('input_dir', default = None, help = 'path to dataset')
-  flags.DEFINE_float('dist', default = 0.5, help = 'vector distance threshold')
+  flags.DEFINE_float('dist', default = 1e-3, help = 'vector distance threshold')
   flags.DEFINE_float('potential', default = 0.2, help = 'potential distance threshold')
 
 def main(unused_argv):
   index = IndexFlatL2(9**3*4)
-  if exists('samples.index'): index = read_index('samples.index')
+  if exists('samples.index'):
+    index = read_index('samples.index')
+    labels = np.load('labels.npy')
   else:
     print('generating index')
     features = list()
@@ -33,12 +35,13 @@ def main(unused_argv):
     write_index(index, 'samples.index')
     np.save('labels.npy', labels)
   print('searching for conflicts')
-  for f in tqdm(listdir(FLAGS.input_dir)):
+  for f in tqdm(listdir(join(FLAGS.input_dir, 'train'))):
     stem, ext = splitext(f)
     if ext != '.npz': continue
-    data = np.load(join(FLAGS.input_dir, f))
-    dists, indices = index.search(data['x'].flatten().astype(np.float32), k = 5)
-    break
+    data = np.load(join(FLAGS.input_dir, 'train', f))
+    dists, indices = index.search(np.expand_dims(data['x'].flatten().astype(np.float32), axis = 0), k = 5)
+    close_indices = indices[0][dists[0] < FLAGS.dist]
+    close_labels = labels[close_indices]
 
 if __name__ == "__main__":
   add_options()
