@@ -37,7 +37,7 @@ def main(unused_argv):
     stem, ext = splitext(f)
     if ext != '.npz': continue
     data = np.load(join(FLAGS.input_dir, f))
-    index.search(data['x'].flatten().astype(np.float32), k = 5)
+    dists, indices = index.search(data['x'].flatten().astype(np.float32), k = 5)
     break
 
 if __name__ == "__main__":
