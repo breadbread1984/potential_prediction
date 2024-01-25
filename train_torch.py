@@ -3,7 +3,7 @@
 from absl import flags, app
 from os import mkdir
 from os.path import exists, join
-from torch import device, save, load, no_grad, any, isnan
+from torch import device, save, load, no_grad, any, isnan, autograd
 from torch.nn import L1Loss
 from torch.optim import Adam
 from torch.optim.lr_scheduler import CosineAnnealingWarmRestarts
@@ -30,7 +30,7 @@ def add_options():
   flags.DEFINE_enum('device', default = 'cuda', enum_values = ['cpu', 'cuda'], help = 'device')
 
 def main(unused_argv):
-  torch.autograd.set_detect_anomaly(True)
+  autograd.set_detect_anomaly(True)
   eval_dists = [int(float(d) * 1000) for d in FLAGS.eval_dists]
   trainset = RhoDataset(join(FLAGS.dataset, 'train'))
   evalset = RhoDataset(join(FLAGS.dataset, 'val'))
