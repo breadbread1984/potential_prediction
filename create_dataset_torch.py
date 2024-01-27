@@ -60,7 +60,7 @@ class RhoDataset(Dataset):
   def __getitem__(self, idx):
     data = np.load(self.file_list[idx])
     x, y = data['x'].astype(np.float32), np.expand_dims(data['y'], axis = -1).astype(np.float32)
-    return x, y
+    return x, np.exp(y)
 
 if __name__ == "__main__":
   add_options()
