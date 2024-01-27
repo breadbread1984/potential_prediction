@@ -51,7 +51,7 @@ def main(unused_argv):
         grad_z = np.reshape(sample[4+(9**3)*3:4+(9**3)*4], (9,9,9))
         inputs = np.expand_dims(np.stack([density, grad_x, grad_y, grad_z], axis = 0), axis = 0)
         inputs = torch.from_numpy(inputs.astype(np.float32)).to(device('cuda'))
-        pred.append(model(inputs).detach().cpu().numpy()[0])
+        pred.append(np.log(model(inputs).detach().cpu().numpy()[0]))
         gt.append(sample[3])
       plt.cla()
       plt.plot(selected[:,0], gt, label = 'ground truth')
