@@ -58,6 +58,7 @@ def main(unused_argv):
       plt.plot(selected[:,0], pred, label = 'prediction')
       plt.legend()
       plt.savefig('%s_%d.png' % (molecule, distance))
+      print('%s %s mae: %f' % (molecule, bond, np.mean(np.abs(np.array(gt) - np.array(pred))).item()))
 
 if __name__ == "__main__":
   add_options()
