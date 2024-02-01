@@ -15,5 +15,5 @@ class Predict(object):
     # NOTE: inputs.shape = (batch, 4, 9, 9, 9)
     if type(inputs) is np.ndarray:
       inputs = torch.from_numpy(inputs.astype(np.float32))
-    return np.log(self.model(inputs))
+    return np.log(self.model(inputs).cpu().detach().numpy())
 
