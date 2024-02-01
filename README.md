@@ -72,3 +72,10 @@ python3 train_torch.py --dataset <path/to/directory/for/npz> [--ckpt <path/to/ch
 |workers| number of workers for data loader |
 |device | cpu or cuda|
 
+## Pretrained checkpoint
+
+| molecule | episodes |framework| url |
+|----------|----------|---------|-----|
+| CH4      | 24       | torch   |https://drive.google.com/file/d/1tHYugnt320G4lQGLBL9_UdkyMpolUeER/view?usp=drive_link|
+| H2O      | 29       | torch   |https://drive.google.com/file/d/1nvJRDBvzFFXyqP4-tItDWJ-XPt5rjiVD/view?usp=drive_link|
+
