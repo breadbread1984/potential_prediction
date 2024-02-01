@@ -16,5 +16,6 @@ class Predict(object):
     # NOTE: inputs.shape = (batch, 4, 9, 9, 9)
     if type(inputs) is np.ndarray:
       inputs = torch.from_numpy(inputs.astype(np.float32))
+    inputs = inputs.to(torch.device('cuda'))
     return np.log(self.model(inputs).cpu().detach().numpy())
 
