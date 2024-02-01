@@ -1,6 +1,7 @@
 #!/usr/bin/python3
 
 from os.path import join
+import numpy as np
 import torch
 from torch import load, device
 from models_torch import PredictorSmall
