@@ -62,8 +62,8 @@ def main(unused_argv):
       diff_range = max(maxval - minval,1e-8)
       for diff, x, y, z in results:
         color = cm.rainbow(diff / diff_range)
-        ax.scatter(x, y, z, c = color, marker = '.')
-      with open('%s_%d.pickle', 'w') as f:
+        ax.scatter(x, y, z, c = color)
+      with open('%s_%d.pickle', 'wb') as f:
         pickle.dump(ax, f)
 
 if __name__ == "__main__":
