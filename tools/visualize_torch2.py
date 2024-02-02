@@ -63,7 +63,7 @@ def main(unused_argv):
       for diff, x, y, z in results:
         color = cm.rainbow(diff / diff_range)
         ax.scatter(x, y, z, c = color)
-      with open('%s_%d.pickle', 'wb') as f:
+      with open('%s_%d.pickle' % (molecule, distance), 'wb') as f:
         pickle.dump(ax, f)
 
 if __name__ == "__main__":
