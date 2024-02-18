@@ -3,6 +3,7 @@
 import math
 import torch
 from torch import nn
+from mixture_of_experts import MoE
 
 class Attention(nn.Module):
   def __init__(self, **kwargs):
@@ -33,6 +34,19 @@ class Attention(nn.Module):
     results = torch.transpose(results, 1, 2) # results.shape = (batch, channel, seq_len)
     return results
 
+class SwiGLU(nn.Module):
+  def __init__(self, **kwargs):
+    super(SwiGLU, self).__init__()
+    self.channel = kwargs.get('channel', 768)
+    self.intermediate = math.floor(self.channel * 4 * 2 / 3)
+    self.gate_proj = nn.Linear(self.channel, self.intermediate, bias = False)
+    self.up_proj = nn.Linear(self.channel, self.intermediate, bias = False)
+    self.down_proj = nn.Linear(self.intermediate, self.channel, bias = False)
+    self.act_fn = nn.SiLU()
+  def forward(self, x):
+    down_proj = self.down_proj(self.act_fn(self.gate_proj(x)) * self.up_proj(x))
+    return down_proj
+
 class ABlock(nn.Module):
   def __init__(self, input_size, **kwargs):
     super(ABlock, self).__init__()
@@ -43,16 +57,12 @@ class ABlock(nn.Module):
     self.num_heads = kwargs.get('num_heads', 8)
     self.qkv_bias = kwargs.get('qkv_bias', False)
     self.groups = kwargs.get('groups', 1)
+    self.num_experts = kwargs.get('num_experts', 3)
 
-    self.conv1 = nn.Conv3d(self.channel, self.channel * self.mlp_ratio, kernel_size = (1,1,1), padding = 'same', groups = self.groups)
-    self.conv2 = nn.Conv3d(self.channel * self.mlp_ratio, self.channel, kernel_size = (1,1,1), padding = 'same', groups = self.groups)
-    self.gelu = nn.GELU()
     self.layernorm1 = nn.LayerNorm([self.channel, self.input_size, self.input_size, self.input_size])
-    self.layernorm2 = nn.LayerNorm([self.channel, self.input_size, self.input_size, self.input_size])
     self.dropout0 = nn.Dropout(self.drop_rate)
-    self.dropout1 = nn.Dropout(self.drop_rate)
-    self.dropout2 = nn.Dropout(self.drop_rate)
     self.atten = Attention(**kwargs)
+    self.moe = MoE(dim = self.channel, num_experts = self.num_experts, experts = SwiGLU(**kwargs))
   def forward(self, inputs):
     # inputs.shape = (batch, c, t, h, w)
     # attention
@@ -66,12 +76,12 @@ class ABlock(nn.Module):
     results = skip + results
     # mlp
     skip = results
-    results = self.layernorm2(results)
-    results = self.conv1(results) # results.shape = (batch, channel * mlp_ratio, t, h, w)
-    results = self.gelu(results)
-    results = self.dropout1(results)
-    results = self.conv2(results) # results.shape = (batch, channel, t, h, w)
-    results = self.dropout2(results)
+    results = torch.flatten(results, start_dim = 2) # results.shape = (batch, channel, 9**3)
+    results = torch.permute(results, (0,2,1)) # results.shape = (batch, 9**3, channel)
+    results, _ = self.moe(results)
+    results = torch.permute(results, (0,2,1)) # results.shape = (batch, channel, 9**3)
+    b, c, _ = results.shape
+    results = torch.reshape(results, (b, c, 9, 9, 9)) # results.shape = (batch, channel, 9, 9, 9)
     results = skip + results
     return results
 
