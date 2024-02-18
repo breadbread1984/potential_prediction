@@ -40,7 +40,7 @@ def main(unused_argv):
   model.to(device(FLAGS.device))
   mae = L1Loss()
   optimizer = Adam(model.parameters(), lr = FLAGS.lr)
-  scheduler = CosineAnnealingWarmRestarts(optimizer, T_0 = 5)
+  scheduler = CosineAnnealingWarmRestarts(optimizer, T_0 = 5, T_mult = 2)
   tb_writer = SummaryWriter(log_dir = join(FLAGS.ckpt, 'summaries'))
   global_steps = 0
   if not exists(FLAGS.ckpt): mkdir(FLAGS.ckpt)
