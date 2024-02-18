@@ -47,10 +47,12 @@ def main(unused_argv):
   if exists(join(FLAGS.ckpt, 'model.pth')):
     ckpt = load(join(FLAGS.ckpt, 'model.pth'))
     model.load_state_dict(ckpt['state_dict'])
-    global_steps = ckpt['global_steps']
-  for epoch in range(FLAGS.epochs):
+    optimizer.load_state_dict(ckpt['optimizer'])
+    scheduler = ckpt['scheduler']
+    start_epoch = ckpt['epoch']
+  for epoch in range(start_epoch, FLAGS.epochs - start_epoch):
     model.train()
-    for x, y in train_dataloader:
+    for step, (x, y) in enumerate(train_dataloader):
       optimizer.zero_grad()
       rho, potential = x.to(device(FLAGS.device)), y.to(device(FLAGS.device))
       preds = model(rho)
@@ -63,13 +65,15 @@ def main(unused_argv):
         continue
       loss.backward()
       optimizer.step()
-      global_steps += 1
+      global_steps = epoch * len(train_dataloader) + step
       if global_steps % 100 == 0:
         print('Step #%d Epoch #%d: loss %f, lr %f' % (global_steps, epoch, loss, scheduler.get_last_lr()[0]))
         tb_writer.add_scalar('loss', loss, global_steps)
       if global_steps % FLAGS.save_freq == 0:
-        ckpt = {'global_steps': global_steps,
-                'state_dict': model.state_dict()}
+        ckpt = {'epoch': epoch,
+                'state_dict': model.state_dict(),
+                'optimizer': optimizer.state_dict(),
+                'scheduler': scheduler}
         save(ckpt, join(FLAGS.ckpt, 'model.pth'))
     scheduler.step()
     with no_grad():
