@@ -42,7 +42,7 @@ def main(unused_argv):
   optimizer = Adam(model.parameters(), lr = FLAGS.lr)
   scheduler = CosineAnnealingWarmRestarts(optimizer, T_0 = 5, T_mult = 2)
   tb_writer = SummaryWriter(log_dir = join(FLAGS.ckpt, 'summaries'))
-  global_steps = 0
+  start_epoch = 0
   if not exists(FLAGS.ckpt): mkdir(FLAGS.ckpt)
   if exists(join(FLAGS.ckpt, 'model.pth')):
     ckpt = load(join(FLAGS.ckpt, 'model.pth'))
