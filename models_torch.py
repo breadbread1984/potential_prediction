@@ -34,19 +34,6 @@ class Attention(nn.Module):
     results = torch.transpose(results, 1, 2) # results.shape = (batch, channel, seq_len)
     return results
 
-class SwiGLU(nn.Module):
-  def __init__(self, **kwargs):
-    super(SwiGLU, self).__init__()
-    self.channel = kwargs.get('channel', 768)
-    self.intermediate = math.floor(self.channel * 4 * 2 / 3)
-    self.gate_proj = nn.Linear(self.channel, self.intermediate, bias = False)
-    self.up_proj = nn.Linear(self.channel, self.intermediate, bias = False)
-    self.down_proj = nn.Linear(self.intermediate, self.channel, bias = False)
-    self.act_fn = nn.SiLU()
-  def forward(self, x):
-    down_proj = self.down_proj(self.act_fn(self.gate_proj(x)) * self.up_proj(x))
-    return down_proj
-
 class ABlock(nn.Module):
   def __init__(self, input_size, **kwargs):
     super(ABlock, self).__init__()
@@ -60,9 +47,15 @@ class ABlock(nn.Module):
     self.num_experts = kwargs.get('num_experts', 3)
 
     self.layernorm1 = nn.LayerNorm([self.channel, self.input_size, self.input_size, self.input_size])
+    self.layernorm2 = nn.LayerNorm([self.input_size ** 3, self.channel])
     self.dropout0 = nn.Dropout(self.drop_rate)
     self.atten = Attention(**kwargs)
-    self.moe = MoE(dim = self.channel, num_experts = self.num_experts, experts = SwiGLU(**kwargs))
+    self.moe = MoE(dim = self.channel, num_experts = self.num_experts, experts = nn.Sequential(
+        nn.Linear(self.channel, self.channel * self.mlp_ratio),
+        nn.GELU(),
+        nn.Dropout(self.drop_rate),
+        nn.Linear(self.channel * self.mlp_ratio, self.channel),
+        nn.Dropout(self.drop_rate)))
   def forward(self, inputs):
     # inputs.shape = (batch, c, t, h, w)
     # attention
@@ -78,6 +71,7 @@ class ABlock(nn.Module):
     skip = results
     results = torch.flatten(results, start_dim = 2) # results.shape = (batch, channel, 9**3)
     results = torch.permute(results, (0,2,1)) # results.shape = (batch, 9**3, channel)
+    results = self.layernorm2(results)
     results, _ = self.moe(results)
     results = torch.permute(results, (0,2,1)) # results.shape = (batch, channel, 9**3)
     b, c, _ = results.shape
