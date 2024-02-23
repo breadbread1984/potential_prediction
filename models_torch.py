@@ -3,6 +3,7 @@
 import math
 import torch
 from torch import nn
+from zeta.nn import FeedForward
 
 class Attention(nn.Module):
   def __init__(self, **kwargs):
