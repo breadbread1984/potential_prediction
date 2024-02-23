@@ -170,7 +170,7 @@ class ABlock(nn.Module):
     self.layernorm1 = nn.LayerNorm([self.channel, self.input_size, self.input_size, self.input_size])
     self.dropout0 = nn.Dropout(self.drop_rate)
     self.atten = Attention(**kwargs)
-    self.ffn = SwitchMoE(self.channels, self.channels * 4, 3)
+    self.ffn = SwitchMoE(self.channel, self.channel * 4, 3)
   def forward(self, inputs):
     # inputs.shape = (batch, c, t, h, w)
     # attention
