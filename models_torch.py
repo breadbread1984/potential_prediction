@@ -3,7 +3,6 @@
 import math
 import torch
 from torch import nn
-from mixture_of_experts import MoE
 
 class Attention(nn.Module):
   def __init__(self, **kwargs):
@@ -34,6 +33,128 @@ class Attention(nn.Module):
     results = torch.transpose(results, 1, 2) # results.shape = (batch, channel, seq_len)
     return results
 
+class SwitchGate(nn.Module):
+
+    def __init__(
+        self,
+        dim,
+        num_experts: int,
+        capacity_factor: float = 1.0,
+        epsilon: float = 1e-6,
+        *args,
+        **kwargs,
+    ):
+        super().__init__()
+        self.dim = dim
+        self.num_experts = num_experts
+        self.capacity_factor = capacity_factor
+        self.epsilon = epsilon
+        self.w_gate = nn.Linear(dim, num_experts)
+
+    def forward(self, x: Tensor, use_aux_loss=False):
+
+        # Compute gate scores
+        gate_scores = F.softmax(self.w_gate(x), dim=-1)
+
+        # Determine the top-1 expert for each token
+        capacity = int(self.capacity_factor * x.size(0))
+
+        top_k_scores, top_k_indices = gate_scores.topk(1, dim=-1)
+
+        # Mask to enforce sparsity
+        mask = torch.zeros_like(gate_scores).scatter_(
+            1, top_k_indices, 1
+        )
+
+        # Combine gating scores with the mask
+        masked_gate_scores = gate_scores * mask
+
+        # Denominators
+        denominators = (
+            masked_gate_scores.sum(0, keepdim=True) + self.epsilon
+        )
+
+        # Norm gate scores to sum to the capacity
+        gate_scores = (masked_gate_scores / denominators) * capacity
+
+        if use_aux_loss:
+            load = gate_scores.sum(0)  # Sum over all examples
+            importance = gate_scores.sum(1)  # Sum over all experts
+
+            # Aux loss is mean suqared difference between load and importance
+            loss = ((load - importance) ** 2).mean()
+
+            return gate_scores, loss
+
+        return gate_scores, None
+
+class SwitchMoE(nn.Module):
+
+    def __init__(
+        self,
+        dim: int,
+        hidden_dim: int,
+        output_dim: int,
+        num_experts: int,
+        capacity_factor: float = 1.0,
+        mult: int = 4,
+        use_aux_loss: bool = False,
+        *args,
+        **kwargs,
+    ):
+        super().__init__()
+        self.dim = dim
+        self.hidden_dim = hidden_dim
+        self.output_dim = output_dim
+        self.num_experts = num_experts
+        self.capacity_factor = capacity_factor
+        self.mult = mult
+        self.use_aux_loss = use_aux_loss
+
+        self.experts = nn.ModuleList(
+            [
+                FeedForward(dim, dim, mult, *args, **kwargs)
+                for _ in range(num_experts)
+            ]
+        )
+
+        self.gate = SwitchGate(
+            dim,
+            num_experts,
+            capacity_factor,
+        )
+
+    def forward(self, x: Tensor):
+
+        # (batch_size, seq_len, num_experts)
+        gate_scores, loss = self.gate(
+            x, use_aux_loss=self.use_aux_loss
+        )
+
+        # Dispatch to experts
+        expert_outputs = [expert(x) for expert in self.experts]
+
+        # Check if any gate scores are nan and handle
+        if torch.isnan(gate_scores).any():
+            print("NaN in gate scores")
+            gate_scores[torch.isnan(gate_scores)] = 0
+
+        # Stack and weight outputs
+        stacked_expert_outputs = torch.stack(
+            expert_outputs, dim=-1
+        )  # (batch_size, seq_len, output_dim, num_experts)
+        if torch.isnan(stacked_expert_outputs).any():
+            stacked_expert_outputs[
+                torch.isnan(stacked_expert_outputs)
+            ] = 0
+
+        # Combine expert outputs and gating scores
+        moe_output = torch.sum(
+            gate_scores.unsqueeze(-2) * stacked_expert_outputs, dim=-1
+        )
+
+        return moe_output, loss
+
 class ABlock(nn.Module):
   def __init__(self, input_size, **kwargs):
     super(ABlock, self).__init__()
@@ -47,15 +168,9 @@ class ABlock(nn.Module):
     self.num_experts = kwargs.get('num_experts', 3)
 
     self.layernorm1 = nn.LayerNorm([self.channel, self.input_size, self.input_size, self.input_size])
-    self.layernorm2 = nn.LayerNorm([self.input_size ** 3, self.channel])
     self.dropout0 = nn.Dropout(self.drop_rate)
     self.atten = Attention(**kwargs)
-    self.moe = MoE(dim = self.channel, num_experts = self.num_experts, experts = nn.Sequential(
-        nn.Linear(self.channel, self.channel * self.mlp_ratio),
-        nn.GELU(),
-        nn.Dropout(self.drop_rate),
-        nn.Linear(self.channel * self.mlp_ratio, self.channel),
-        nn.Dropout(self.drop_rate)))
+    self.ffn = SwitchMoE(self.channels, self.channels * 4, 3)
   def forward(self, inputs):
     # inputs.shape = (batch, c, t, h, w)
     # attention
@@ -71,8 +186,7 @@ class ABlock(nn.Module):
     skip = results
     results = torch.flatten(results, start_dim = 2) # results.shape = (batch, channel, 9**3)
     results = torch.permute(results, (0,2,1)) # results.shape = (batch, 9**3, channel)
-    results = self.layernorm2(results)
-    results, _ = self.moe(results)
+    results = self.ffn(results)
     results = torch.permute(results, (0,2,1)) # results.shape = (batch, channel, 9**3)
     b, c, _ = results.shape
     results = torch.reshape(results, (b, c, 9, 9, 9)) # results.shape = (batch, channel, 9, 9, 9)
