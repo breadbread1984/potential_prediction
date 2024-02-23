@@ -51,7 +51,7 @@ class SwitchGate(nn.Module):
         self.epsilon = epsilon
         self.w_gate = nn.Linear(dim, num_experts)
 
-    def forward(self, x: Tensor, use_aux_loss=False):
+    def forward(self, x: torch.Tensor, use_aux_loss=False):
 
         # Compute gate scores
         gate_scores = F.softmax(self.w_gate(x), dim=-1)
@@ -124,7 +124,7 @@ class SwitchMoE(nn.Module):
             capacity_factor,
         )
 
-    def forward(self, x: Tensor):
+    def forward(self, x: torch.Tensor):
 
         # (batch_size, seq_len, num_experts)
         gate_scores, loss = self.gate(
