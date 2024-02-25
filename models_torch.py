@@ -3,7 +3,6 @@
 import math
 import torch
 from torch import nn
-from zeta.nn import FeedForward
 
 class Attention(nn.Module):
   def __init__(self, **kwargs):
@@ -114,7 +113,11 @@ class SwitchMoE(nn.Module):
 
         self.experts = nn.ModuleList(
             [
-                FeedForward(dim, dim, mult, *args, **kwargs)
+                nn.Sequential([
+                    nn.Linear(self.dim, self.dim * self.mult, bias = True),
+                    nn.GELU(),
+                    nn.Dropout(0.1),
+                    nn.Linear(self.dim * self.mult, self.dim, bias = True)])
                 for _ in range(num_experts)
             ]
         )
