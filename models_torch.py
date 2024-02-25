@@ -191,7 +191,7 @@ class ABlock(nn.Module):
     skip = results
     results = torch.flatten(results, start_dim = 2) # results.shape = (batch, channel, 9**3)
     results = torch.permute(results, (0,2,1)) # results.shape = (batch, 9**3, channel)
-    results = self.ffn(results)
+    results, _ = self.ffn(results)
     results = torch.permute(results, (0,2,1)) # results.shape = (batch, channel, 9**3)
     b, c, _ = results.shape
     results = torch.reshape(results, (b, c, 9, 9, 9)) # results.shape = (batch, channel, 9, 9, 9)
