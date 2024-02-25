@@ -113,11 +113,11 @@ class SwitchMoE(nn.Module):
 
         self.experts = nn.ModuleList(
             [
-                nn.Sequential([
+                nn.Sequential(
                     nn.Linear(self.dim, self.dim * self.mult, bias = True),
                     nn.GELU(),
                     nn.Dropout(0.1),
-                    nn.Linear(self.dim * self.mult, self.dim, bias = True)])
+                    nn.Linear(self.dim * self.mult, self.dim, bias = True))
                 for _ in range(num_experts)
             ]
         )
