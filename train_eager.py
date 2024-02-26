@@ -4,7 +4,7 @@ from os import listdir, mkdir
 from os.path import exists, join, splitext
 from absl import app, flags
 import tensorflow as tf
-from models_tf import PredictorSmall
+from models_tf import Predictor
 from create_dataset import Dataset
 
 FLAGS = flags.FLAGS
@@ -12,7 +12,6 @@ FLAGS = flags.FLAGS
 def add_options():
   flags.DEFINE_string('dataset', default = None, help = 'path to directory containing train and test set')
   flags.DEFINE_string('ckpt', default = 'ckpt', help = 'path to directory for checkpoints')
-  flags.DEFINE_integer('groups', default = 1, help = 'group number for conv')
   flags.DEFINE_integer('batch_size', default = 128, help = 'batch size')
   flags.DEFINE_integer('save_freq', default = 1000, help = 'checkpoint save frequency')
   flags.DEFINE_integer('epochs', default = 600, help = 'epochs to train')
@@ -33,7 +32,7 @@ def search_datasets(dataset_path):
 
 def main(unused_argv):
   set_configs()
-  predictor = PredictorSmall(in_channel = 4, groups = FLAGS.groups)
+  predictor = Predictor()
   optimizer = tf.keras.optimizers.Adam(tf.keras.optimizers.schedules.CosineDecayRestarts(FLAGS.lr, first_decay_steps = FLAGS.decay_steps))
 
   train_list, val_list = search_datasets(FLAGS.dataset)
