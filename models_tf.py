@@ -37,7 +37,7 @@ def MLPMixer(**kwargs):
     results = tf.keras.layers.Dropout(rate = drop_rate)(results)
     results = tf.keras.layers.Add()([results, skip])
   results = tf.keras.layers.LayerNormalization()(results)
-  results = tf.keras.lyaers.Lambda(lambda x: tf.math.reduce_mean(x, axis = -1))(results)
+  results = tf.keras.layers.Lambda(lambda x: tf.math.reduce_mean(x, axis = 1))(results)
   return tf.keras.Model(inputs = inputs, outputs = results)
 
 def Predictor(model_type = 'b16'):
