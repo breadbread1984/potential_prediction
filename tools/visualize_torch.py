@@ -15,6 +15,7 @@ def add_options():
   flags.DEFINE_string('input_dir', default = None, help = 'path to input directory')
   flags.DEFINE_string('ckpt', default = 'ckpt', help = 'path to directory for checkpoints')
   flags.DEFINE_list('eval_dists', default = ['1.7',], help = 'bond distances which are used as evaluation dataset')
+  flags.DEFINE_enum('postprocess', default = 'exp', enum_values = {'exp', 'log', 'none'}, help = 'method for post process')
 
 def main(unused_argv):
   if not exists(FLAGS.ckpt):
@@ -50,7 +51,12 @@ def main(unused_argv):
         grad_z = np.reshape(sample[4+(9**3)*3:4+(9**3)*4], (9,9,9))
         inputs = np.expand_dims(np.stack([density, grad_x, grad_y, grad_z], axis = 0), axis = 0)
         inputs = torch.from_numpy(inputs.astype(np.float32)).to(device('cuda'))
-        pred.append(np.log(model(inputs).detach().cpu().numpy()[0,0]))
+        value = model(inputs).detach().cpu().numpy()[0,0]
+        if FLAGS.postprocess == 'exp':
+          value = np.log(value)
+        elif FLAGS.postprocess == 'log':
+          value = -np.exp(-value)
+        pred.append(value)
         gt.append(sample[3])
       plt.cla()
       plt.plot(selected[:,0], gt, label = 'ground truth')
