@@ -21,7 +21,7 @@ class MLPMixer(nn.Module):
     for i in range(self.num_blocks):
       layers.update({
         'layernorm1_%d' % i: nn.LayerNorm((self.hidden_dim, 9**3)),
-        'linear1_%d' % i: nn.Linear(self.hidden_dim, self.tokens_mlp_dim),
+        'linear1_%d' % i: nn.Linear(9**3, self.tokens_mlp_dim),
         'gelu1_%d' % i: nn.GELU(),
         'linear2_%d' % i: nn.Linear(self.tokens_mlp_dim, 9**3),
         'layernorm2_%d' % i: nn.LayerNorm((9**3, self.hidden_dim)),
