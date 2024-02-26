@@ -4,137 +4,86 @@ import math
 import torch
 from torch import nn
 
-class Attention(nn.Module):
+class MLPMixer(nn.Module):
   def __init__(self, **kwargs):
-    super(Attention, self).__init__()
-    self.channel = kwargs.get('channel', 768)
-    self.num_heads = kwargs.get('num_heads', 8)
-    self.qkv_bias = kwargs.get('qkv_bias', False)
+    super(MLPMixer, self).__init__()
+    self.hidden_dim = kwargs.get('hidden_dim', 768)
+    self.num_blocks = kwargs.get('num_blocks', 12)
+    self.tokens_mlp_dim = kwargs.get('tokens_mlp_dim', 384)
+    self.channels_mlp_dim = kwargs.get('channels_mlp_dim', 3072)
     self.drop_rate = kwargs.get('drop_rate', 0.1)
 
-    self.dense1 = nn.Linear(self.channel, self.channel * 3, bias = self.qkv_bias)
-    self.dense2 = nn.Linear(self.channel, self.channel, bias = self.qkv_bias)
-    self.dropout1 = nn.Dropout(self.drop_rate)
-    self.dropout2 = nn.Dropout(self.drop_rate)
-  def forward(self, inputs):
-    # inputs.shape = (batch, channel, seq_len)
-    results = self.dense1(torch.transpose(inputs, 1, 2)) # results.shape = (batch, seq_len, 3 * channel)
-    b, s, _ = results.shape
-    results = torch.reshape(results, (b, s, 3, self.num_heads, self.channel // self.num_heads)) # results.shape = (batch, seq_len, 3, head, channel // head)
-    results = torch.permute(results, (0, 2, 3, 1, 4)) # results.shape = (batch, 3, head, seq_len, channel // head)
-    q, k, v = results[:,0,...], results[:,1,...], results[:,2,...] # shape = (batch, head, seq_len, channel // head)
-    qk = torch.matmul(q, torch.transpose(k, 2, 3)) # qk.shape = (batch, head, seq_len, seq_len)
-    attn = torch.softmax(qk, dim = -1) # attn.shape = (batch, head, seq_len, seq_len)
-    attn = self.dropout1(attn)
-    qkv = torch.permute(torch.matmul(attn, v), (0, 2, 1, 3)) # qkv.shape = (batch, seq_len, head, channel // head)
-    qkv = torch.reshape(qkv, (b, s, self.channel)) # qkv.shape = (batch, seq_len, channel)
-    results = self.dense2(qkv) # results.shape = (batch, seq_len, channel)
-    results = self.dropout2(results)
-    results = torch.transpose(results, 1, 2) # results.shape = (batch, channel, seq_len)
-    return results
-
-class ABlock(nn.Module):
-  def __init__(self, input_size, **kwargs):
-    super(ABlock, self).__init__()
-    self.input_size = input_size
-    self.channel = kwargs.get('channel', 768)
-    self.mlp_ratio = kwargs.get('mlp_ratio', 4)
-    self.drop_rate = kwargs.get('drop_rate', 0.1)
-    self.num_heads = kwargs.get('num_heads', 8)
-    self.qkv_bias = kwargs.get('qkv_bias', False)
-    self.groups = kwargs.get('groups', 1)
-
-    self.conv1 = nn.Conv3d(self.channel, self.channel * self.mlp_ratio, kernel_size = (1,1,1), padding = 'same', groups = self.groups)
-    self.conv2 = nn.Conv3d(self.channel * self.mlp_ratio, self.channel, kernel_size = (1,1,1), padding = 'same', groups = self.groups)
+    self.layernorm1 = nn.LayerNorm((9**3, 4))
+    self.dense = nn.Linear(4, self.hidden_dim)
     self.gelu = nn.GELU()
-    self.layernorm1 = nn.LayerNorm([self.channel, self.input_size, self.input_size, self.input_size])
-    self.layernorm2 = nn.LayerNorm([self.channel, self.input_size, self.input_size, self.input_size])
-    self.dropout0 = nn.Dropout(self.drop_rate)
-    self.dropout1 = nn.Dropout(self.drop_rate)
-    self.dropout2 = nn.Dropout(self.drop_rate)
-    self.atten = Attention(**kwargs)
-  def forward(self, inputs):
-    # inputs.shape = (batch, c, t, h, w)
-    # attention
-    skip = inputs
-    results = self.layernorm1(inputs)
-    b, c, t, h, w = results.shape
-    results = torch.reshape(results, (b, c, t * h * w)) # results.shape = (batch, channel, t * h * w)
-    results = self.atten(results) # results.shape = (batch, channel, t * h * w)
-    results = torch.reshape(results, (b, c, t, h, w)) # results.shape = (batch, channel, t, h, w)
-    results = self.dropout0(results)
-    results = skip + results
-    # mlp
-    skip = results
-    results = self.layernorm2(results)
-    results = self.conv1(results) # results.shape = (batch, channel * mlp_ratio, t, h, w)
-    results = self.gelu(results)
-    results = self.dropout1(results)
-    results = self.conv2(results) # results.shape = (batch, channel, t, h, w)
-    results = self.dropout2(results)
-    results = skip + results
-    return results
-
-class Extractor(nn.Module):
-  def __init__(self, **kwargs):
-    super(Extractor, self).__init__()
-    self.in_channel = kwargs.get('in_channel', 3)
-    self.hidden_channels = kwargs.get('hidden_channels', 512)
-    self.depth = kwargs.get('depth', 12)
-    self.mlp_ratio = kwargs.get('mlp_ratio', 4.)
-    self.drop_rate = kwargs.get('drop_rate', 0.1)
-    self.qkv_bias = kwargs.get('qkv_bias', False)
-    self.num_heads = kwargs.get('num_heads', 8)
-    self.groups = kwargs.get('groups', 1)
-    
-    self.gelu = nn.GELU()
-    self.tanh = nn.Tanh()
-    self.conv1 = nn.Conv3d(4, self.hidden_channels, kernel_size = (1,1,1), padding = 'same')
-    self.conv2 = nn.Conv3d(self.hidden_channels, self.hidden_channels, kernel_size = (1,1,1), padding = 'same', groups = self.groups)
-    self.layernorm1 = nn.LayerNorm([4, 9, 9, 9])
-    self.layernorm2 = nn.LayerNorm([self.hidden_channels, 9, 9, 9])
-    self.dropout1 = nn.Dropout(self.drop_rate)
-    self.blocks = nn.ModuleList([ABlock(input_size = 9, channel = self.hidden_channels, qkv_bias = self.qkv_bias, num_heads = self.num_heads, **kwargs) for i in range(self.depth)])
+    self.dropout = nn.Dropout(self.drop_rate)
+    layers = dict()
+    for i in range(self.num_blocks):
+      layers.update({
+        'layernorm1_%d' % i: nn.LayerNorm((self.hidden_dim, 9**3)),
+        'linear1_%d' % i: nn.Linear(self.hidden_dim, self.tokens_mlp_dim),
+        'gelu1_%d' % i: nn.GELU(),
+        'linear2_%d' % i: nn.Linear(self.tokens_mlp_dim, 9**3),
+        'layernorm2_%d' % i: nn.LayerNorm((9**3, self.hidden_dim)),
+        'linear3_%d' % i: nn.Linear(self.hidden_dim, self.channels_mlp_dim),
+        'gelu2_%d' % i: nn.GELU(),
+        'linear4_%d' % i: nn.Linear(self.channels_mlp_dim, self.hidden_dim),
+      }
+    self.layers = nn.ModuleDict(layers)
+    self.layernorm2 = nn.LayerNorm((9**3,self.hidden_dim))
   def forward(self, inputs):
     # inputs.shape = (batch, 4, 9, 9, 9)
-    results = self.layernorm1(inputs)
-    results = self.conv1(results) # results.shape = (batch, hidden_channels[0], 9, 9, 9)
+    results = torch.flatten(inputs, 2) # results.shape = (batch, 4, 9**3)
+    results = torch.permute(results, (0,2,1)) # results.shape = (batch, 9**3, 4)
+    results = self.layernorm1(results)
+    results = self.dense(results)
     results = self.gelu(results)
-    results = self.dropout1(results)
-    # do attention only when the feature shape is small enough
-    for i in range(self.depth):
-      results = self.blocks[i](results)
-    results = self.layernorm2(results)
-    results = self.conv2(results) # results.shape = (batch, hidden_channels, 9, 9, 9)
-    results = self.tanh(results) # results.shape = (batch, hidden_channels, 9, 9, 9)
-    #results = torch.mean(results, dim = (2,3,4)) # results.shape = (batch, hidden_channels)
+    results = self.dropout(results)
+
+    for i in range(self.num_blocks):
+      # 1) spatial mixing
+      skip = results
+      results = torch.permute(results, (0,2,1)) # results.shape = (batch, channel, 9**3)
+      results = self.layers['layernorm1_%d' % i](results)
+      results = self.layers['linear1_%d' % i](results)
+      results = self.layers['gelu1_%d' % i](results)
+      results = self.layers['linear2_%d' % i](results)
+      results = torch.permute(results, (0,2,1)) # resutls.shape = (batch, 9**3, channel)
+      results = results + skip
+      # 2) channel mixing
+      skip = results
+      results = self.layers['layernorm2_%d' % i](results)
+      results = self.layers['linear3_%d' % i](results)
+      results = self.layers['gelu2_%d' % i](results)
+      results = self.layers['linear4_%d' % i](results)
+      results = results + skip
+    results = self.layernorm2(results) # results.shape = (batch, 9**3, channel)
+    results = torch.mean(results, dim = 1) # results.shape = (batch, channel)
     return results
 
 class Predictor(nn.Module):
   def __init__(self, **kwargs):
     super(Predictor, self).__init__()
     self.predictor = Extractor(**kwargs)
-    self.dense1 = nn.Linear(kwargs.get('hidden_channels'), 1)
+    self.dense1 = nn.Linear(kwargs.get('hidden_dim'), 1)
   def forward(self, inputs):
     results = self.predictor(inputs)
-    results = self.dense1(results[:,:,0,0,0])
+    results = self.dense1(results)
     return results
 
 class PredictorSmall(nn.Module):
-  def __init__(self, **kwargs):
+  def __init__(self):
     super(PredictorSmall, self).__init__()
-    hidden_channels = kwargs.get('hidden_channels', 512)
-    depth = kwargs.get('depth', 12)
-    self.predictor = Predictor(hidden_channels = hidden_channels, depth = depth, **kwargs)
+    kwargs = {'hidden_dim': 256, 'num_blocks': 12, 'tokens_mlp_dim': 384, 'channels_mlp_dim': 256*4, 'drop_rate': 0.1}
+    self.predictor = Predictor(**kwargs)
   def forward(self, inputs):
     return self.predictor(inputs)
 
 class PredictorBase(nn.Module):
-  def __init__(self, **kwargs):
+  def __init__(self):
     super(PredictorBase, self).__init__()
-    hidden_channels = kwargs.get('hidden_channels', 512)
-    depth = kwargs.get('depth', 24)
-    self.predictor = Predictor(hidden_channels = hidden_channels, depth = depth, **kwargs)
+    kwargs = {'hidden_dim': 768, 'num_blocks': 12, 'tokens_mlp_dim': 384, 'channels_mlp_dim': 3072, 'drop_rate': 0.1}
+    self.predictor = Predictor(**kwargs)
   def forward(self, inputs):
     return self.predictor(inputs)
 
