@@ -40,7 +40,7 @@ def Predictor(model_type = 'b16'):
     'l16': {'patch_size': 16, 'hidden_dim': 1024, 'num_blocks': 24, 'tokens_mlp_dim': 512, 'channels_mlp_dim': 4096},
   }
   # network
-  return MLPMixer(configs[model_type])
+  return MLPMixer(**configs[model_type])
 
 if __name__ == "__main__":
     inputs = np.random.normal(size = (1,9,9,9,4))
