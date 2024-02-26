@@ -15,7 +15,7 @@ def add_options():
   flags.DEFINE_string('input_dir', default = None, help = 'path to input directory')
   flags.DEFINE_string('ckpt', default = 'ckpt', help = 'path to directory for checkpoints')
   flags.DEFINE_list('eval_dists', default = ['1.7',], help = 'bond distances which are used as evaluation dataset')
-  flags.DEFINE_enum('postprocess', default = 'exp', enum_values = {'exp', 'log', 'none'}, help = 'method for post process')
+  flags.DEFINE_enum('postprocess', default = 'exp', enum_values = {'exp', 'scale', 'none'}, help = 'method for post process')
 
 def main(unused_argv):
   if not exists(FLAGS.ckpt):
