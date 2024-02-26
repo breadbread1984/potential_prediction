@@ -26,6 +26,7 @@ def add_options():
   flags.DEFINE_list('eval_dists', default = ['1.7',], help = 'bond distances which are used as evaluation dataset')
   flags.DEFINE_integer('workers', default = 4, help = 'number of workers')
   flags.DEFINE_enum('device', default = 'cuda', enum_values = ['cpu', 'cuda'], help = 'device')
+  flags.DEFINE_boolean('use_logy', default = False, help = 'use log(y) as supervising value')
 
 def main(unused_argv):
   autograd.set_detect_anomaly(True)
@@ -41,13 +42,15 @@ def main(unused_argv):
   optimizer = Adam(model.parameters(), lr = FLAGS.lr)
   scheduler = CosineAnnealingWarmRestarts(optimizer, T_0 = 5, T_mult = 2)
   tb_writer = SummaryWriter(log_dir = join(FLAGS.ckpt, 'summaries'))
-  global_steps = 0
+  start_epoch = 0
   if not exists(FLAGS.ckpt): mkdir(FLAGS.ckpt)
   if exists(join(FLAGS.ckpt, 'model.pth')):
     ckpt = load(join(FLAGS.ckpt, 'model.pth'))
     model.load_state_dict(ckpt['state_dict'])
-    global_steps = ckpt['global_steps']
-  for epoch in range(FLAGS.epochs):
+    optimizer.load_state_dict(ckpt['optimizer'])
+    scheduler = ckpt['scheduler']
+    start_epoch = ckpt['epoch']
+  for epoch in range(start_epoch, FLAGS.epochs - start_epoch):
     model.train()
     for x, y in train_dataloader:
       optimizer.zero_grad()
@@ -62,13 +65,15 @@ def main(unused_argv):
         continue
       loss.backward()
       optimizer.step()
-      global_steps += 1
+      global_steps = epoch * len(train_dataloader) + step
       if global_steps % 100 == 0:
         print('Step #%d Epoch #%d: loss %f, lr %f' % (global_steps, epoch, loss, scheduler.get_last_lr()[0]))
         tb_writer.add_scalar('loss', loss, global_steps)
       if global_steps % FLAGS.save_freq == 0:
-        ckpt = {'global_steps': global_steps,
-                'state_dict': model.state_dict()}
+        ckpt = {'epoch': epoch,
+                'state_dict': model.state_dict(),
+                'optimizer': optimizer.state_dict(),
+                'scheduler': scheduler}
         save(ckpt, join(FLAGS.ckpt, 'model.pth'))
     scheduler.step()
     with no_grad():
