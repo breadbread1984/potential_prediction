@@ -64,7 +64,7 @@ class MLPMixer(nn.Module):
 class Predictor(nn.Module):
   def __init__(self, **kwargs):
     super(Predictor, self).__init__()
-    self.predictor = Extractor(**kwargs)
+    self.predictor = MLPMixer(**kwargs)
     self.dense1 = nn.Linear(kwargs.get('hidden_dim'), 1)
   def forward(self, inputs):
     results = self.predictor(inputs)
