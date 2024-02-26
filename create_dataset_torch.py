@@ -16,7 +16,6 @@ def add_options():
   flags.DEFINE_string('output_dir', default = 'dataset_torch', help = 'path to output directory')
   flags.DEFINE_list('eval_dists', default = ['1.7'], help = 'bond distances which are used as evaluation dataset')
   flags.DEFINE_integer('pool_size', default = 16, help = 'size of multiprocess pool')
-  flags.DEFINE_enum('postprocess', default = 'exp', enum_values = {'exp', 'log', 'none'}, help = 'method for post process')
 
 def extract(npy_path, output_path):
   samples = np.load(npy_path)
@@ -49,21 +48,22 @@ def main(unused_argv):
   [handler.wait() for handler in handlers]
 
 class RhoDataset(Dataset):
-  def __init__(self, dataset_dir):
+  def __init__(self, dataset_dir, postprocess = 'exp'):
     super(RhoDataset, self).__init__()
     self.file_list = list()
     for f in listdir(dataset_dir):
       stem, ext = splitext(f)
       if ext != '.npz': continue
       self.file_list.append(join(dataset_dir, f))
+    self.postprocess = postprocess
   def __len__(self):
     return len(self.file_list)
   def __getitem__(self, idx):
     data = np.load(self.file_list[idx])
     x, y = data['x'].astype(np.float32), np.expand_dims(data['y'], axis = -1).astype(np.float32)
-    if FLAGS.postprocess == 'exp':
+    if self.postprocess == 'exp':
       label = np.exp(y)
-    elif FLAGS.postprocess == 'log':
+    elif self.postprocess == 'log':
       label = -np.log(-y)
     else:
       label = y
