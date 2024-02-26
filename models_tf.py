@@ -49,7 +49,7 @@ def Predictor(model_type = 'b16'):
   # network
   inputs = tf.keras.Input((9,9,9,4))
   results = MLPMixer(**configs[model_type])(inputs)
-  results = tf.keras.Dense(1)(results)
+  results = tf.keras.layers.Dense(1)(results)
 
 if __name__ == "__main__":
     inputs = np.random.normal(size = (1,9,9,9,4))
