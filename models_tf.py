@@ -11,15 +11,15 @@ def MLPMixer(**kwargs):
   drop_rate = kwargs.get('drop_rate', 0.1)
 
   inputs = tf.keras.Input((9,9,9,4)) # inputs.shape = (batch, 9, 9, 9, 4)
-  results = tf.keras.layers.Reshape((9**3,4))(results) # results.shape = (batch, 9**3, 4)
-  results = tf.keras.layers.LayerNormalization()(inputs)
+  results = tf.keras.layers.Reshape((9**3,4))(inputs) # results.shape = (batch, 9**3, 4)
+  results = tf.keras.layers.LayerNormalization()(results)
   results = tf.keras.layers.Dense(hidden_dim, activation = tf.keras.activations.gelu)(results)
   results = tf.keras.layers.Dropout(rate = drop_rate)(results)
   for i in range(num_blocks):
     # 1) spatial mixing
     skip = results
-    results = tf.keras.layers.LayerNormalization()(results)
     results = tf.keras.layers.Lambda(lambda x: tf.transpose(x, (0,2,1)))(results)
+    results = tf.keras.layers.LayerNormalization()(results)
     results = tf.keras.layers.Dense(tokens_mlp_dim, activation = tf.keras.activations.gelu)(results)
     results = tf.keras.layers.Dropout(rate = drop_rate)(results)
     results = tf.keras.layers.LayerNormalization()(results)
