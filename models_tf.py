@@ -69,7 +69,7 @@ def Extractor(**kwargs):
     # network
     inputs = tf.keras.Input((None, None, None, in_channel)) # inputs.shape = (batch, t, h, w, in_channel)
     results = tf.keras.layers.LayerNormalization()(inputs)
-    results = tf.keras.layers.Conv3D(hidden_channels, kernel_size = (1, 1, 1), padding = 'same', activation = tf.keras.activations.gelu)(inputs) # results.shape = (batch, t, h, w, hidden_channels[0])
+    results = tf.keras.layers.Conv3D(hidden_channels, kernel_size = (1, 1, 1), padding = 'same', activation = tf.keras.activations.gelu)(results) # results.shape = (batch, t, h, w, hidden_channels[0])
     results = tf.keras.layers.Dropout(rate = drop_rate)(results)
     # blocks
     for i in range(depth):
