@@ -3,107 +3,49 @@
 import numpy as np
 import tensorflow as tf
 
-def Attention(**kwargs):
-    # args
-    channel = kwargs.get('channel', 768)
-    num_heads = kwargs.get('num_heads', 8)
-    qkv_bias = kwargs.get('qkv_bias', False)
-    drop_rate = kwargs.get('drop_rate', 0.1)
-    assert channel % num_heads == 0
-    # network
-    inputs = tf.keras.Input((None, channel)) # inputs.shape = (b, s, c)
-    results = tf.keras.layers.Dense(channel * 3, use_bias = qkv_bias)(inputs) # results.shape = (b, s, 3c)
-    results = tf.keras.layers.Reshape((-1, 3, num_heads, channel // num_heads))(results) # results.shape = (b, s, 3, h, c // h)
-    results = tf.keras.layers.Lambda(lambda x: tf.transpose(x, (0,2,3,1,4)))(results) # results.shape = (b, 3, h, s, c // h)
-    q, k, v = tf.keras.layers.Lambda(lambda x: (x[:,0,...], x[:,1,...], x[:,2,...]))(results) # q.shape = (b, h, s, c // h)
-    qk = tf.keras.layers.Lambda(lambda x, s: tf.matmul(x[0], tf.transpose(x[1], (0,1,3,2))) * s, arguments = {'s': (channel // num_heads) ** -0.5})([q, k]) # qk.shape = (b, h, s, s)
-    attn = tf.keras.layers.Softmax(axis = -1)(qk)
-    attn = tf.keras.layers.Dropout(rate = drop_rate)(attn)
-    qkv = tf.keras.layers.Lambda(lambda x: tf.transpose(tf.matmul(x[0], x[1]), (0, 2, 1, 3)))([attn, v]) # qkv.shape = (b, s, h, c // h)
-    qkv = tf.keras.layers.Reshape((-1, channel))(qkv)
-    results = tf.keras.layers.Dense(channel, use_bias = qkv_bias)(qkv)
-    results = tf.keras.layers.Dropout(rate = drop_rate)(results)
-    return tf.keras.Model(inputs = inputs, outputs = results, name = kwargs.get('name', None))
+def MLPMixer(**kwargs):
+  hidden_dim = kwargs.get('hidden_dim', 768)
+  num_blocks = kwargs.get('num_blocks', 12)
+  tokens_mlp_dim = kwargs.get('tokens_mlp_dim', 384)
+  channels_mlp_dim = kwargs.get('channels_mlp_dim', 3072)
 
-def ABlock(**kwargs):
-    # args
-    channel = kwargs.get('channel', 768)
-    mlp_ratio = kwargs.get('mlp_ratio', 4)
-    drop_rate = kwargs.get('drop_rate', 0.1)
-    num_heads = kwargs.get('num_heads', 8)
-    qkv_bias = kwargs.get('qkv_bias', False)
-    groups = kwargs.get('groups', 1)
-    # network
-    inputs = tf.keras.Input((None, None, None, channel))
-    # attention
-    skip = inputs
-    results = tf.keras.layers.LayerNormalization()(inputs) # results.shape = (batch, T, H, W, channel)
-    shape = tf.keras.layers.Lambda(lambda x: tf.shape(x))(results)
-    results = tf.keras.layers.Lambda(lambda x: tf.reshape(x, (tf.shape(x)[0],
-                                                              tf.shape(x)[1] * tf.shape(x)[2] * tf.shape(x)[3],
-                                                              tf.shape(x)[4])))(results) # results.shape = (batch, T * H * W, channel)
-    results = Attention(**kwargs)(results)
-    results = tf.keras.layers.Lambda(lambda x: tf.reshape(x[0], x[1]), output_shape = (None, None, None, channel))([results, shape]) # results.shape = (batch, T, H, W, channel)
-    results = tf.keras.layers.Dropout(drop_rate)(results)
-    results = tf.keras.layers.Add()([skip, results])
-    # mlp
+  inputs = tf.keras.Input((9,9,9,4)) # inputs.shape = (batch, 9, 9, 9, 4)
+  results = tf.keras.layers.LayerNormalization()(inputs)
+  results = tf.keras.layers.Reshape((9**3,4))(results) # results.shape = (batch, 9**3, 4)
+  results = tf.keras.layers.Dense(hidden_dim, activation = tf.keras.activations.gelu)(results)
+  results = tf.keras.layers.Dropout(rate = drop_rate)(results)
+  for i in range(num_blocks):
+    # 1) spatial mixing
     skip = results
     results = tf.keras.layers.LayerNormalization()(results)
-    results = tf.keras.layers.Conv3D(channel * mlp_ratio, kernel_size = (1,1,1), padding = 'same', activation = tf.keras.activations.gelu, groups = groups)(results)
-    results = tf.keras.layers.Dropout(rate = drop_rate)(results)
-    results = tf.keras.layers.Conv3D(channel, kernel_size = (1,1,1), padding = 'same', groups = groups)(results)
-    results = tf.keras.layers.Dropout(rate = drop_rate)(results)
-    results = tf.keras.layers.Add()([skip, results])
-    return tf.keras.Model(inputs = inputs, outputs = results, name = kwargs.get('name', None))
-
-def Extractor(**kwargs):
-    # args
-    in_channel = kwargs.get('in_channel', 3)
-    hidden_channels = kwargs.get('hidden_channels', 512)
-    depth = kwargs.get('depth', 12)
-    mlp_ratio = kwargs.get('mlp_ratio', 4.)
-    drop_rate = kwargs.get('drop_rate', 0.1)
-    qkv_bias = kwargs.get('qkv_bias', False)
-    num_heads = kwargs.get('num_heads', 8)
-    groups = kwargs.get('groups', 1)
-    # network
-    inputs = tf.keras.Input((None, None, None, in_channel)) # inputs.shape = (batch, t, h, w, in_channel)
-    results = tf.keras.layers.LayerNormalization()(inputs)
-    results = tf.keras.layers.Conv3D(hidden_channels, kernel_size = (1, 1, 1), padding = 'same', activation = tf.keras.activations.gelu)(inputs) # results.shape = (batch, t, h, w, hidden_channels[0])
-    results = tf.keras.layers.Dropout(rate = drop_rate)(results)
-    # blocks
-    for i in range(depth):
-        results = ABlock(channel = hidden_channels, qkv_bias = qkv_bias, num_heads = num_heads, **kwargs)(results) # results.shape = (batch, 9, 9, 9, hidden_channels)
+    results = tf.keras.layers.Lambda(lambda x: tf.transpose(x, (0,2,1)))(results)
+    results = tf.keras.layers.Dense(tokens_mlp_dim, activation = tf.keras.activations.gelu)(results)
+    results = tf.keras.layers.Dense(9**3)(results)
+    results = tf.keras.layers.Lambda(lambda x: tf.transpose(x, (0,2,1)))(results)
+    results = tf.keras.layers.Add()([results, skip])
+    # 2) channel mixing
+    skip = results
     results = tf.keras.layers.LayerNormalization()(results)
-    results = tf.keras.layers.Conv3D(hidden_channels, kernel_size = (1, 1, 1), padding = 'same', activation = tf.keras.activations.tanh, groups = groups)(results) # results.shape = (batch, 1, 1, 1, hidden_channels[1])
-    return tf.keras.Model(inputs = inputs, outputs = results, name = kwargs.get('name', None))
+    results = tf.keras.layers.Dense(channels_mlp_dim, activation = tf.keras.activations.gelu)(results)
+    results = tf.keras.layers.Dense(hidden_dim)(results)
+    results = tf.keras.layers.Add()([results, skip])
+  results = tf.keras.layers.LayerNormalization()(results)
+  results = tf.keras.lyaers.Lambda(lambda x: tf.math.reduce_mean(x, axis = -1))(results)
+  return tf.keras.Model(inputs = inputs, outputs = results)
 
-def Predictor(**kwargs):
-    in_channel = kwargs.get('in_channel', 3)
-
-    inputs = tf.keras.Input((None,None,None,in_channel))
-    results = Extractor(**kwargs)(inputs)
-    results = tf.keras.layers.Lambda(lambda x: x[:,0,0,0,:])(results)
-    results = tf.keras.layers.Dense(1)(results)
-    return tf.keras.Model(inputs = inputs, outputs = results)
-
-def PredictorSmall(**kwargs):
-    # args
-    hidden_channels = kwargs.get('hidden_channels', 512)
-    depth = kwargs.get('depth', 12)
-    # network
-    return Predictor(hidden_channels = hidden_channels, depth = depth, **kwargs)
-
-def PredictorBase(**kwargs):
-    # args
-    hidden_channels = kwargs.get('hidden_channels', 512)
-    depth = kwargs.get('depth', 24)
-    # network
-    return Predictor(hidden_channels = hidden_channels, depth = depth, **kwargs)
+def Predictor(model_type = 'b16'):
+  configs = {
+    'b16': {'patch_size': 16, 'hidden_dim': 768, 'num_blocks': 12, 'tokens_mlp_dim': 384, 'channels_mlp_dim': 3072},
+    'b32': {'patch_size': 32, 'hidden_dim': 768, 'num_blocks': 12, 'tokens_mlp_dim': 384, 'channels_mlp_dim': 3072},
+    'l16': {'patch_size': 16, 'hidden_dim': 1024, 'num_blocks': 24, 'tokens_mlp_dim': 512, 'channels_mlp_dim': 4096},
+  }
+  # network
+  return MLPMixer(configs[model_type])
 
 if __name__ == "__main__":
     inputs = np.random.normal(size = (1,9,9,9,4))
-    predictor = PredictorSmall(in_channel = 4, groups = 1)
+    predictor = Predictor()
     predictor.save('predictor.keras')
     outputs = predictor(inputs)
     print(outputs.shape)
+
