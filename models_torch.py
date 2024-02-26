@@ -28,7 +28,7 @@ class MLPMixer(nn.Module):
         'linear3_%d' % i: nn.Linear(self.hidden_dim, self.channels_mlp_dim),
         'gelu2_%d' % i: nn.GELU(),
         'linear4_%d' % i: nn.Linear(self.channels_mlp_dim, self.hidden_dim),
-      }
+      })
     self.layers = nn.ModuleDict(layers)
     self.layernorm2 = nn.LayerNorm((9**3,self.hidden_dim))
   def forward(self, inputs):
