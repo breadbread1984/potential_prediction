@@ -40,11 +40,12 @@ def MLPMixer(**kwargs):
   results = tf.keras.layers.Lambda(lambda x: tf.math.reduce_mean(x, axis = 1))(results)
   return tf.keras.Model(inputs = inputs, outputs = results)
 
-def Predictor(model_type = 'b16'):
+def Predictor(model_type = 'small'):
   configs = {
-    'b16': {'patch_size': 16, 'hidden_dim': 768, 'num_blocks': 12, 'tokens_mlp_dim': 384, 'channels_mlp_dim': 3072, 'drop_rate': 0.1},
-    'b32': {'patch_size': 32, 'hidden_dim': 768, 'num_blocks': 12, 'tokens_mlp_dim': 384, 'channels_mlp_dim': 3072, 'drop_rate': 0.1},
-    'l16': {'patch_size': 16, 'hidden_dim': 1024, 'num_blocks': 24, 'tokens_mlp_dim': 512, 'channels_mlp_dim': 4096, 'drop_rate': 0.1},
+    'small': {'hidden_dim': 256, 'num_blocks': 12, 'tokens_mlp_dim': 384, 'channels_mlp_dim': 256*4, 'drop_rate': 0.1},
+    'b16': {'hidden_dim': 768, 'num_blocks': 12, 'tokens_mlp_dim': 384, 'channels_mlp_dim': 3072, 'drop_rate': 0.1},
+    'b32': {'hidden_dim': 768, 'num_blocks': 12, 'tokens_mlp_dim': 384, 'channels_mlp_dim': 3072, 'drop_rate': 0.1},
+    'l16': {'hidden_dim': 1024, 'num_blocks': 24, 'tokens_mlp_dim': 512, 'channels_mlp_dim': 4096, 'drop_rate': 0.1},
   }
   # network
   inputs = tf.keras.Input((9,9,9,4))
