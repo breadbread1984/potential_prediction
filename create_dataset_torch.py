@@ -16,6 +16,7 @@ def add_options():
   flags.DEFINE_string('output_dir', default = 'dataset_torch', help = 'path to output directory')
   flags.DEFINE_list('eval_dists', default = ['1.7'], help = 'bond distances which are used as evaluation dataset')
   flags.DEFINE_integer('pool_size', default = 16, help = 'size of multiprocess pool')
+  flags.DEFINE_enum('postprocess', default = 'exp', enum_values = {'exp', 'log', 'none'}, help = 'method for post process')
 
 def extract(npy_path, output_path):
   samples = np.load(npy_path)
@@ -60,7 +61,13 @@ class RhoDataset(Dataset):
   def __getitem__(self, idx):
     data = np.load(self.file_list[idx])
     x, y = data['x'].astype(np.float32), np.expand_dims(data['y'], axis = -1).astype(np.float32)
-    return x, np.exp(y)
+    if FLAGS.postprocess == 'exp':
+      label = np.exp(y)
+    elif FLAGS.postprocess == 'log':
+      label = -np.log(-y)
+    else:
+      label = y
+    return x, label
 
 if __name__ == "__main__":
   add_options()

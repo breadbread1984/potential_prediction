@@ -26,7 +26,6 @@ def add_options():
   flags.DEFINE_list('eval_dists', default = ['1.7',], help = 'bond distances which are used as evaluation dataset')
   flags.DEFINE_integer('workers', default = 4, help = 'number of workers')
   flags.DEFINE_enum('device', default = 'cuda', enum_values = ['cpu', 'cuda'], help = 'device')
-  flags.DEFINE_boolean('use_logy', default = False, help = 'use log(y) as supervise value, switch on this option when the supervise value has a high absolute value')
 
 def main(unused_argv):
   autograd.set_detect_anomaly(True)
@@ -59,10 +58,7 @@ def main(unused_argv):
       if any(isnan(preds)):
         print('there is nan in prediction results!')
         continue
-      if FLAGS.use_logy:
-        loss = mae(-torch.log(-potential), preds)
-      else:
-        loss = mae(potential, preds)
+      loss = mae(potential, preds)
       if any(isnan(loss)):
         print('there is nan in loss!')
         continue
