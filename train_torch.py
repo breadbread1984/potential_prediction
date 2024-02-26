@@ -52,7 +52,7 @@ def main(unused_argv):
     start_epoch = ckpt['epoch']
   for epoch in range(start_epoch, FLAGS.epochs - start_epoch):
     model.train()
-    for x, y in train_dataloader:
+    for step, (x, y) in enumerate(train_dataloader):
       optimizer.zero_grad()
       rho, potential = x.to(device(FLAGS.device)), y.to(device(FLAGS.device))
       preds = model(rho)
