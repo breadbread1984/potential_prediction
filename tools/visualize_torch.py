@@ -54,8 +54,8 @@ def main(unused_argv):
         value = model(inputs).detach().cpu().numpy()[0,0]
         if FLAGS.postprocess == 'exp':
           value = np.log(value)
-        elif FLAGS.postprocess == 'log':
-          value = -np.exp(-value)
+        elif FLAGS.postprocess == 'scale':
+          value = 100*np.log(value)
         pred.append(value)
         gt.append(sample[3])
       plt.cla()
