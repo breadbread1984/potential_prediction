@@ -21,23 +21,17 @@ def MLPMixer(**kwargs):
     results = tf.keras.layers.Lambda(lambda x: tf.transpose(x, (0,2,1)))(results)
     results = tf.keras.layers.LayerNormalization()(results)
     results = tf.keras.layers.Dense(tokens_mlp_dim, activation = tf.keras.activations.gelu)(results)
-    results = tf.keras.layers.Dropout(rate = drop_rate)(results)
-    results = tf.keras.layers.LayerNormalization()(results)
     results = tf.keras.layers.Dense(9**3)(results)
-    results = tf.keras.layers.Dropout(rate = drop_rate)(results)
     results = tf.keras.layers.Lambda(lambda x: tf.transpose(x, (0,2,1)))(results)
     results = tf.keras.layers.Add()([results, skip])
     # 2) channel mixing
     skip = results
     results = tf.keras.layers.LayerNormalization()(results)
     results = tf.keras.layers.Dense(channels_mlp_dim, activation = tf.keras.activations.gelu)(results)
-    results = tf.keras.layers.Dropout(rate = drop_rate)(results)
-    results = tf.keras.layers.LayerNormalization()(results)
     results = tf.keras.layers.Dense(hidden_dim)(results)
-    results = tf.keras.layers.Dropout(rate = drop_rate)(results)
     results = tf.keras.layers.Add()([results, skip])
   results = tf.keras.layers.LayerNormalization()(results)
-  results = tf.keras.layers.Lambda(lambda x: x[:,0,:])(results)
+  results = tf.keras.layers.Lambda(lambda x: tf.math.reduce_mean(x, axis = 1))(results)
   return tf.keras.Model(inputs = inputs, outputs = results)
 
 def Predictor(model_type = 'small'):
