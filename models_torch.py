@@ -176,7 +176,7 @@ class MLPMixer(nn.Module):
       results = results + skip
       # 2) channel mixing
       skip = results
-      results = self.layers['ffn_%d' % i](results)
+      results, _ = self.layers['ffn_%d' % i](results)
       results = results + skip
     results = self.layernorm2(results) # results.shape = (batch, 9**3, channel)
     results = torch.mean(results, dim = 1) # results.shape = (batch, channel)
