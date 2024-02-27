@@ -79,3 +79,16 @@ python3 train_torch.py --dataset <path/to/directory/for/npz> [--ckpt <path/to/ch
 | CH4      | 24       | torch   |https://drive.google.com/file/d/1tHYugnt320G4lQGLBL9_UdkyMpolUeER/view?usp=drive_link|
 | H2O      | 29       | torch   |https://drive.google.com/file/d/1nvJRDBvzFFXyqP4-tItDWJ-XPt5rjiVD/view?usp=drive_link|
 
+## Examples
+
+### training on dataset of Vxc
+
+```shell
+python3 train_torch.py --dataset vxc/ --ckpt ckpt_vxc --postprocess exp --device cuda
+```
+
+### training on dataset of Exc
+
+```shell
+python3 train_torch.py --dataset exc/ --ckpt ckpt_exc --postprocess log --device cuda
+```
