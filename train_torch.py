@@ -26,7 +26,7 @@ def add_options():
   flags.DEFINE_list('eval_dists', default = ['1.7',], help = 'bond distances which are used as evaluation dataset')
   flags.DEFINE_integer('workers', default = 4, help = 'number of workers')
   flags.DEFINE_enum('device', default = 'cuda', enum_values = ['cpu', 'cuda'], help = 'device')
-  flags.DEFINE_enum('postprocess', default = 'exp', enum_values = {'exp', 'scale', 'none'}, help = 'method for post process')
+  flags.DEFINE_enum('postprocess', default = 'exp', enum_values = {'exp', 'log', 'none'}, help = 'method for post process')
 
 def main(unused_argv):
   autograd.set_detect_anomaly(True)
