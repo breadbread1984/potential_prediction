@@ -55,7 +55,7 @@ def main(unused_argv):
         if FLAGS.postprocess == 'exp':
           value = np.log(value)
         elif FLAGS.postprocess == 'log':
-          value = -np.sqrt(np.exp(value) - 1)
+          value = -np.sqrt(np.exp(np.maximum(value,0.)) - 1)
         pred.append(value)
         gt.append(sample[3])
       plt.cla()
