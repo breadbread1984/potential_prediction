@@ -9,7 +9,7 @@ from models_torch import PredictorSmall
 class Predict(object):
   def __init__(self, ckpt_path):
     ckpt = load(join(ckpt_path, "model.pth"))
-    self.model = PredictorSmall(in_channel = 4, groups = 1).to(torch.device('cuda'))
+    self.model = PredictorSmall().to(torch.device('cuda'))
     self.model.load_state_dict(ckpt['state_dict'])
     self.model.eval()
   def predict(self, inputs):
