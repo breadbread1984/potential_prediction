@@ -64,7 +64,7 @@ class RhoDataset(Dataset):
     if self.postprocess == 'exp':
       label = np.exp(y)
     elif self.postprocess == 'log':
-      label = np.log(x**2+1)
+      label = np.log(y**2+1)
     else:
       label = y
     return x, label
