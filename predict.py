@@ -22,5 +22,5 @@ class Predict(object):
     if self.postprocess == 'exp':
       return np.log(results)
     elif self.postprocess == 'log':
-      return -np.sqrt(np.exp(np.maximum(value,0.)) - 1)
+      return -np.sqrt(np.exp(np.maximum(results,0.)) - 1)
 
