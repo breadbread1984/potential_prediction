@@ -30,6 +30,7 @@ def main(unused_argv):
     for bond in listdir(join(FLAGS.input_dir, molecule)):
       stem, ext = splitext(bond)
       if ext != '.npy': continue
+      if not stem.startswith('data_'): continue
       distance = int(stem.replace('data_',''))
       is_eval_sample = True if distance in eval_dists else False
       if not is_eval_sample: continue
