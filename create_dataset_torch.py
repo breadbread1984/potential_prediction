@@ -63,8 +63,8 @@ class RhoDataset(Dataset):
     x, y = data['x'].astype(np.float32), np.expand_dims(data['y'], axis = -1).astype(np.float32)
     if self.postprocess == 'exp':
       label = np.exp(y)
-    elif self.postprocess == 'log':
-      label = np.log(y**2+1)
+    elif self.postprocess == 'sinh':
+      label = np.arcsinh(y)
     else:
       label = y
     return x, label

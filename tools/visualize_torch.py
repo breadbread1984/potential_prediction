@@ -15,7 +15,7 @@ def add_options():
   flags.DEFINE_string('input_dir', default = None, help = 'path to input directory')
   flags.DEFINE_string('ckpt', default = 'ckpt', help = 'path to directory for checkpoints')
   flags.DEFINE_list('eval_dists', default = ['1.7',], help = 'bond distances which are used as evaluation dataset')
-  flags.DEFINE_enum('postprocess', default = 'exp', enum_values = {'exp', 'log', 'none'}, help = 'method for post process')
+  flags.DEFINE_enum('postprocess', default = 'exp', enum_values = {'exp', 'sinh', 'none'}, help = 'method for post process')
 
 def main(unused_argv):
   if not exists(FLAGS.ckpt):
@@ -55,8 +55,8 @@ def main(unused_argv):
         value = model(inputs).detach().cpu().numpy()[0,0]
         if FLAGS.postprocess == 'exp':
           value = np.log(value)
-        elif FLAGS.postprocess == 'log':
-          value = -np.sqrt(np.exp(np.maximum(value,0.)) - 1)
+        elif FLAGS.postprocess == 'sinh':
+          value = np.sinh(value)
         pred.append(value)
         gt.append(sample[3])
       plt.cla()
