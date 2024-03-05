@@ -21,6 +21,6 @@ class Predict(object):
     results = self.model(inputs).cpu().detach().numpy()
     if self.postprocess == 'exp':
       return np.log(results)
-    elif self.postprocess == 'log':
-      return -np.sqrt(np.exp(np.maximum(results,0.)) - 1)
+    elif self.postprocess == 'sinh':
+      return np.sinh(results)
 

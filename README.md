@@ -90,5 +90,5 @@ python3 train_torch.py --dataset vxc/ --ckpt ckpt_vxc --postprocess exp --device
 ### training on dataset of Exc
 
 ```shell
-python3 train_torch.py --dataset exc/ --ckpt ckpt_exc --postprocess log --device cuda
+python3 train_torch.py --dataset exc/ --ckpt ckpt_exc --postprocess sinh --device cuda
 ```
