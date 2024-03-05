@@ -75,6 +75,10 @@ def main(unused_argv):
     plt.xlabel('bond distance')
     plt.ylabel('MAE')
     plt.savefig('%s_mae.png' % molecule)
+    with open('%s_mae.csv' % molecule) as f:
+      f.write('bond distance, MAE\n')
+      with result in maes:
+        f.write("%f,%f\n" % (result[0],result[1]))
 
 if __name__ == "__main__":
   add_options()
