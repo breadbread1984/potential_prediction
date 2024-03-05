@@ -27,6 +27,7 @@ def main(unused_argv):
   eval_dists = [int(float(d) * 1000) for d in FLAGS.eval_dists]
   for molecule in listdir(FLAGS.input_dir):
     if not isdir(join(FLAGS.input_dir, molecule)): continue
+    maes = list()
     for bond in listdir(join(FLAGS.input_dir, molecule)):
       stem, ext = splitext(bond)
       if ext != '.npy': continue
@@ -64,7 +65,16 @@ def main(unused_argv):
       plt.plot(selected[:,0], pred, label = 'prediction')
       plt.legend()
       plt.savefig('%s_%d.png' % (molecule, distance))
-      print('%s %s mae: %f' % (molecule, bond, np.mean(np.abs(np.array(gt) - np.array(pred))).item()))
+      mae = np.mean(np.abs(np.array(gt) - np.array(pred))).item()
+      print('%s %s mae: %f' % (molecule, bond, mae))
+      maes.append((distance/1000, mae))
+    maes = list(sorted(maes, key = lambda x: x[0]))
+    maes = np.array(maes)
+    plt.cla()
+    plt.plot(maes[:,0], maes[:,1])
+    plt.xlabel('bond distance')
+    plt.ylabel('MAE')
+    plt.savefig('%s_mae.png' % molecule)
 
 if __name__ == "__main__":
   add_options()
