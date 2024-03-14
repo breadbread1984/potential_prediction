@@ -13,28 +13,28 @@ class MLPMixer(nn.Module):
     self.channels_mlp_dim = kwargs.get('channels_mlp_dim', 3072)
     self.drop_rate = kwargs.get('drop_rate', 0.1)
 
-    self.layernorm1 = nn.LayerNorm((9**3, 4))
-    self.dense = nn.Linear(4, self.hidden_dim)
+    self.layernorm1 = nn.LayerNorm((11**3, 1))
+    self.dense = nn.Linear(1, self.hidden_dim)
     self.gelu = nn.GELU()
     self.dropout = nn.Dropout(self.drop_rate)
     layers = dict()
     for i in range(self.num_blocks):
       layers.update({
-        'layernorm1_%d' % i: nn.LayerNorm((self.hidden_dim, 9**3)),
-        'linear1_%d' % i: nn.Linear(9**3, self.tokens_mlp_dim),
+        'layernorm1_%d' % i: nn.LayerNorm((self.hidden_dim, 11**3)),
+        'linear1_%d' % i: nn.Linear(11**3, self.tokens_mlp_dim),
         'gelu1_%d' % i: nn.GELU(),
-        'linear2_%d' % i: nn.Linear(self.tokens_mlp_dim, 9**3),
-        'layernorm2_%d' % i: nn.LayerNorm((9**3, self.hidden_dim)),
+        'linear2_%d' % i: nn.Linear(self.tokens_mlp_dim, 11**3),
+        'layernorm2_%d' % i: nn.LayerNorm((11**3, self.hidden_dim)),
         'linear3_%d' % i: nn.Linear(self.hidden_dim, self.channels_mlp_dim),
         'gelu2_%d' % i: nn.GELU(),
         'linear4_%d' % i: nn.Linear(self.channels_mlp_dim, self.hidden_dim),
       })
     self.layers = nn.ModuleDict(layers)
-    self.layernorm2 = nn.LayerNorm((9**3,self.hidden_dim))
+    self.layernorm2 = nn.LayerNorm((11**3,self.hidden_dim))
   def forward(self, inputs):
-    # inputs.shape = (batch, 4, 9, 9, 9)
-    results = torch.flatten(inputs, 2) # results.shape = (batch, 4, 9**3)
-    results = torch.permute(results, (0,2,1)) # results.shape = (batch, 9**3, 4)
+    # inputs.shape = (batch, 1, 11, 11, 11)
+    results = torch.flatten(inputs, 2) # results.shape = (batch, 1, 11**3)
+    results = torch.permute(results, (0,2,1)) # results.shape = (batch, 11**3, 1)
     results = self.layernorm1(results)
     results = self.dense(results)
     results = self.gelu(results)
@@ -88,15 +88,7 @@ class PredictorBase(nn.Module):
     return self.predictor(inputs)
 
 if __name__ == "__main__":
-  att = Attention()
-  inputs = torch.randn(2, 768, 10)
-  results = att(inputs)
-  print(results.shape)
-  ablock = ABlock(input_size = 9)
-  inputs = torch.randn(2, 768, 9, 9, 9)
-  results = ablock(inputs)
-  print(results.shape)
-  predictor = PredictorSmall(in_channel = 4, groups = 1)
-  inputs = torch.randn(2, 4, 9, 9, 9)
+  predictor = PredictorSmall()
+  inputs = torch.randn(2, 1, 11, 11, 11)
   results = predictor(inputs)
   print(results.shape)
