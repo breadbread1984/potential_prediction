@@ -20,16 +20,7 @@ python3 create_dataset.py --input_dir <path/to/raw/dataset> --output_dir <path/t
 
 ### Pytorch
 
-```shell
-python3 create_dataset_torch.py --input_dir <path/to/raw/dataset> --output_dir <path/to/directory/for/npz> --eval_dists dist1,dist2,... --pool_size <process number>
-```
-
-|param | description |
-|------|-------------|
-| input_dir | path to directory containing npy files|
-|output_dir | path to directory to hold generated npz files|
-|eval_dists| a list of distances to use as evaluation dataset |
-| pool_size| number of parallel process |
+no action needed
 
 ## training
 
@@ -60,12 +51,13 @@ python3 train_eager.py --dataset <path/to/directory/for/tfrecord> [--ckpt <path/
 train with Pytorch
 
 ```shell
-python3 train_torch.py --dataset <path/to/directory/for/npz> [--ckpt <path/to/checkpoint>] [--batch_size <batch size>] [--lr <learning rate>] [--workers <number of workers>] [--device (cpu|cuda)]
+python3 train_torch.py --trainset <path/to/trainset/directory> --evalset <path/to/evalset/directory> [--ckpt <path/to/checkpoint>] [--batch_size <batch size>] [--lr <learning rate>] [--workers <number of workers>] [--device (cpu|cuda)]
 ```
 
 |param | description |
 |------|-------------|
-|dataset| path to directory containing npz files|
+|trainset| path to directory containing trainset|
+|evalset| path to directory containing evalset|
 |ckpt| path to directory to hold checkpoints, default path is ./ckpt |
 |batch_size| batch size|
 |lr | the initial learning rate|
