@@ -16,7 +16,8 @@ from models_torch import PredictorSmall
 FLAGS = flags.FLAGS
 
 def add_options():
-  flags.DEFINE_string('dataset', default = None, help = 'path to directory containing train and test set')
+  flags.DEFINE_string('trainset', default = None, help = 'path to trainset directory')
+  flags.DEFINE_string('evalset', default = None, help = 'path to evalset directory')
   flags.DEFINE_string('ckpt', default = 'ckpt', help = 'path to directory for checkpoints')
   flags.DEFINE_integer('batch_size', default = 512, help = 'batch size')
   flags.DEFINE_integer('save_freq', default = 1000, help = 'checkpoint save frequency')
@@ -26,13 +27,12 @@ def add_options():
   flags.DEFINE_list('eval_dists', default = ['1.7',], help = 'bond distances which are used as evaluation dataset')
   flags.DEFINE_integer('workers', default = 4, help = 'number of workers')
   flags.DEFINE_enum('device', default = 'cuda', enum_values = ['cpu', 'cuda'], help = 'device')
-  flags.DEFINE_enum('postprocess', default = 'exp', enum_values = {'exp', 'sinh', 'none'}, help = 'method for post process')
 
 def main(unused_argv):
   autograd.set_detect_anomaly(True)
   eval_dists = [int(float(d) * 1000) for d in FLAGS.eval_dists]
-  trainset = RhoDataset(join(FLAGS.dataset, 'train'), FLAGS.postprocess)
-  evalset = RhoDataset(join(FLAGS.dataset, 'val'), FLAGS.postprocess)
+  trainset = RhoDataset(FLAGS.trainset, divide = 'train')
+  evalset = RhoDataset(FLAGS.evalset, divide = 'eval')
   print('trainset size: %d, evalset size: %d' % (len(trainset), len(evalset)))
   train_dataloader = DataLoader(trainset, batch_size = FLAGS.batch_size, shuffle = True, num_workers = FLAGS.batch_size)
   eval_dataloader = DataLoader(evalset, batch_size = FLAGS.batch_size, shuffle = True, num_workers = FLAGS.batch_size)
