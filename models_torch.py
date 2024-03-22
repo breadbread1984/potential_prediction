@@ -7,30 +7,31 @@ from torch import nn
 class MLPMixer(nn.Module):
   def __init__(self, **kwargs):
     super(MLPMixer, self).__init__()
+    self.seq_len = kwargs.get('seq_len', 11**3+31)
     self.hidden_dim = kwargs.get('hidden_dim', 768)
     self.num_blocks = kwargs.get('num_blocks', 12)
     self.tokens_mlp_dim = kwargs.get('tokens_mlp_dim', 384)
     self.channels_mlp_dim = kwargs.get('channels_mlp_dim', 3072)
     self.drop_rate = kwargs.get('drop_rate', 0.1)
 
-    self.layernorm1 = nn.LayerNorm((11**3, 1))
+    self.layernorm1 = nn.LayerNorm((self.seq_len, 1))
     self.dense = nn.Linear(1, self.hidden_dim)
     self.gelu = nn.GELU()
     self.dropout = nn.Dropout(self.drop_rate)
     layers = dict()
     for i in range(self.num_blocks):
       layers.update({
-        'layernorm1_%d' % i: nn.LayerNorm((self.hidden_dim, 11**3)),
-        'linear1_%d' % i: nn.Linear(11**3, self.tokens_mlp_dim),
+        'layernorm1_%d' % i: nn.LayerNorm((self.hidden_dim, self.seq_len)),
+        'linear1_%d' % i: nn.Linear(self.seq_len, self.tokens_mlp_dim),
         'gelu1_%d' % i: nn.GELU(),
-        'linear2_%d' % i: nn.Linear(self.tokens_mlp_dim, 11**3),
-        'layernorm2_%d' % i: nn.LayerNorm((11**3, self.hidden_dim)),
+        'linear2_%d' % i: nn.Linear(self.tokens_mlp_dim, self.seq_len),
+        'layernorm2_%d' % i: nn.LayerNorm((self.seq_len, self.hidden_dim)),
         'linear3_%d' % i: nn.Linear(self.hidden_dim, self.channels_mlp_dim),
         'gelu2_%d' % i: nn.GELU(),
         'linear4_%d' % i: nn.Linear(self.channels_mlp_dim, self.hidden_dim),
       })
     self.layers = nn.ModuleDict(layers)
-    self.layernorm2 = nn.LayerNorm((11**3,self.hidden_dim))
+    self.layernorm2 = nn.LayerNorm((self.seq_len,self.hidden_dim))
   def forward(self, inputs):
     # inputs.shape = (batch, 1, 11, 11, 11)
     results = torch.flatten(inputs, 2) # results.shape = (batch, 1, 11**3)
@@ -89,6 +90,6 @@ class PredictorBase(nn.Module):
 
 if __name__ == "__main__":
   predictor = PredictorSmall()
-  inputs = torch.randn(2, 1, 11, 11, 11)
+  inputs = torch.randn(2, 1, 11**3+31)
   results = predictor(inputs)
   print(results.shape)
